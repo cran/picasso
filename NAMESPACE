@@ -1,0 +1,35 @@
+useDynLib("picasso")
+import("MASS","igraph","Matrix","lattice")
+export("picasso.lasso",
+       "picasso.logit",
+       "picasso.mvr",
+       "picasso.scio",
+       "scio.generator",
+       "print.lasso",
+       "plot.lasso",
+       "coef.lasso",
+       "predict.lasso",
+       "print.logit",
+       "plot.logit",
+       "coef.logit",
+       "predict.logit",
+       "print.mvr",
+       "print.scio",
+       "plot.scio",
+       "scio.plot",
+       "print.sim",
+       "plot.sim"
+      )
+S3method("print", "lasso")
+S3method("plot", "lasso")
+S3method("coef", "lasso")
+S3method("predict", "lasso")
+S3method("print", "logit")
+S3method("plot", "logit")
+S3method("coef", "logit")
+S3method("predict", "logit")
+S3method("print", "mvr")
+S3method("print", "scio")
+S3method("plot", "scio")
+S3method("print", "sim")
+S3method("plot", "sim")
