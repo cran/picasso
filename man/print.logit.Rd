@@ -37,5 +37,5 @@ Maintainer: Xingguo Li <xingguo.leo@gmail.com>
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
-\code{\link{picasso.logit}} and \code{\link{picasso-package}}.
+\code{\link{picasso}} and \code{\link{picasso-package}}.
 }

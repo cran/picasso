@@ -56,24 +56,24 @@ double max_vec(double * x, int n){
     return tmp;
 }
 
-int max_norm2_gr(double *x, int *gr, int *gr_size, int gr_n){
-    int i, j, idx;
-    double tmp, c_va, max_norm2;
+void max_norm2_gr(double *x, int *gr, int *gr_size, int gr_n, double *max_norm2, int *idx){
+    int i, j;
+    double tmp, c_va;
     
-    max_norm2 = 0;
-    idx = 0;
+    *max_norm2 = 0;
+    *idx = 0;
     for(i=0; i<gr_n; i++){
         tmp = 0;
         for (j=0; j<gr_size[i]; j++) {
             c_va = x[gr[i]+j];
             tmp += c_va*c_va;
         }
-        if(tmp>max_norm2){
-            max_norm2 = tmp;
-            idx = i;
+        if(tmp>*max_norm2){
+            *max_norm2 = tmp;
+            *idx = i;
         }
     }
-    return idx;
+    *max_norm2 = sqrt(*max_norm2);
 }
 
 void max_selc(double *x, double vmax, double *x_s, int n, int *n_s, double z){
@@ -120,10 +120,13 @@ void shuffle(int *array, int n){
     {
         for (i = 0; i < n - 1; i++)
         {
-            j = i + rand() / (RAND_MAX / (n - i) + 1);
+            GetRNGstate();
+            j = i + (int)floor(unif_rand()*(double)(n-i));
+            PutRNGstate();
             t = array[j];
             array[j] = array[i];
             array[i] = t;
+            //printf("i=%d,j=%d \n",i,j);
         }
     }
 }
@@ -141,25 +144,38 @@ double vec_inprod(double *x, double *y, int n){
 
 // x = y^T z, y is 1 by m, z is m by n, x is 1 by n
 void vec_mat_prod(double *x, double *y, double *z, int m, int n){
-    int i,j;
+    int i,j,im;
     
     for(i=0; i<n; i++){
         x[i] = 0;
+        im = i*m;
         for(j=0; j<m; j++){
-            x[i] -= z[i*m+j]*y[j];
+            x[i] += z[im+j]*y[j];
         }
     }
 }
 
-// x = -z^T y, y is n by m, z is n by d, x is m by d
-void vec_mat_prod_mvr(double *x, double *y, double *z, int m, int n, int d){
+// x = dif*z^T y, y is n by m, z is n by d, x is m by d
+void vec_mat_prod_mvr(double *x, double *y, double *z, int m, int n, int d, double dif){
     int i,j,k;
     
-    for(i=0; i<d; i++){
-        for(j=0; j<m; j++){
-            x[j*d+i] = 0;
-            for(k=0; k<n; k++){
-                x[j*d+i] += y[j*n+k]*z[i*n+k];
+    if(dif>0){
+        for(i=0; i<d; i++){
+            for(j=0; j<m; j++){
+                x[j*d+i] = 0;
+                for(k=0; k<n; k++){
+                    x[j*d+i] += y[j*n+k]*z[i*n+k];
+                }
+            }
+        }
+    }
+    if(dif<0){
+        for(i=0; i<d; i++){
+            for(j=0; j<m; j++){
+                x[j*d+i] = 0;
+                for(k=0; k<n; k++){
+                    x[j*d+i] -= y[j*n+k]*z[i*n+k];
+                }
             }
         }
     }
@@ -167,30 +183,60 @@ void vec_mat_prod_mvr(double *x, double *y, double *z, int m, int n, int d){
 
 // || x^T y[,gr] ||
 double vec_inprod_gr_2norm(double *x, double *y, int gr, int gr_size, int n){
-    int i,j;
+    int i,j,jn;
     double tmp, tmp1;
     
     tmp = 0;
     for (j=gr; j<gr+gr_size; j++) {
         tmp1 = 0;
+        jn = j*n;
         for(i=0; i<n; i++){
-            tmp1 += x[i]*y[j*n+i];
+            tmp1 += x[i]*y[jn+i];
         }
         tmp += tmp1*tmp1;
     }
     return sqrt(tmp);
 }
 
+// z[gr] = y[,gr]^T * x
+void vec_inprod_gr(double *x, double *y, double *z, int gr, int gr_size, int n){
+    int i,j,jn;
+    
+    for (j=gr; j<gr+gr_size; j++) {
+        z[j] = 0;
+        jn = j*n;
+        for(i=0; i<n; i++){
+            z[j] += x[i]*y[jn+i];
+        }
+    }
+}
+
+// z[c_idx,] = y[,c_idx]^T * x
+void vec_inprod_mvr(double *x, double *y, double *z, int c_idx, int n, int d, int p){
+    int i,j,idx,c_col, jn;
+    
+    c_col = c_idx*n;
+    for (j=0; j<p; j++) {
+        idx = j*d+c_idx;
+        z[idx] = 0;
+        jn = j*n;
+        for(i=0; i<n; i++){
+            z[idx] += x[jn+i]*y[c_col+i];
+        }
+    }
+}
+
 // || x(n by 1)^T y(n by p) ||
 double vec_mat_inprod_2norm(double *y, double *x, int n, int p){
-    int i,j;
+    int i,j,jn;
     double tmp, tmp1;
     
     tmp = 0;
     for (j=0; j<p; j++) {
         tmp1 = 0;
+        jn = j*n;
         for(i=0; i<n; i++){
-            tmp1 += x[i]*y[j*n+i];
+            tmp1 += x[i]*y[jn+i];
         }
         tmp += tmp1*tmp1;
     }
@@ -385,26 +431,44 @@ void dif_mat_mvr(double *y, double *x, double *beta, double dif, int n, int d, i
 }
 
 void identfy_actset(double *beta, int *set_act, int *size_a, int d){
-    int i;
+    int i,idx;
+    double tmp=0;
     
-    *size_a = 0;
+    idx = -1;
     for (i=0; i<d; i++) {
         if(beta[i]!=0){
-            set_act[*size_a] = i;
-            (*size_a)++;
+            if(is_match(i,set_act,*size_a)==0){
+                if(fabs(beta[i])>fabs(tmp)){
+                    tmp = beta[i];
+                    idx = i;
+                }
+            }
         }
+    }
+    if(idx!=-1){
+        set_act[*size_a] = idx;
+        (*size_a)++;
     }
 }
 
 void identfy_actgr(double *beta, int *gr_act, int *gr_size_a, int *gr, int *gr_size, int gr_n){
-    int i;
+    int i,idx;
+    double tmp1, tmp2;
     
-    *gr_size_a = 0;
+    idx = -1;
+    tmp1 = 0;
     for (i=0; i<gr_n; i++) {
-        if(norm2_gr_vec(beta, gr[i], gr_size[i])!=0){
-            gr_act[*gr_size_a] = i;
-            (*gr_size_a)++;
+        if(is_match(i,gr_act,*gr_size_a)==0){
+            tmp2 = norm2_gr_vec(beta, gr[i], gr_size[i]);
+            if(fabs(tmp2)>fabs(tmp1)){
+                tmp1 = tmp2;
+                idx = i;
+            }
         }
+    }
+    if(idx!=-1){
+        gr_act[*gr_size_a] = idx;
+        (*gr_size_a)++;
     }
 }
 
@@ -418,6 +482,44 @@ void prox_beta_est(double *beta_tild, double *beta, double *grad, double L, doub
     }
 }
 
+// beta_tild = soft(beta1-grad/L, ilambda)
+void prox_beta_est_gr(double *beta_tild, double *beta, double *grad, double L, double lamb, int d, int *gr, int *gr_size, int gr_n, double dbn1){
+    int i,j,gr_s,gr_e;
+    double tmp;
+    
+    for (i=0; i<d; i++) {
+        beta_tild[i] = beta[i] - grad[i]/L;
+    }
+    for (i=0; i<gr_n; i++) {
+        gr_s = gr[i];
+        gr_e = gr_s+gr_size[i];
+        tmp = norm2_gr_vec(beta_tild, gr_s, gr_size[i]);
+        for (j=gr_s; j<gr_e; j++) {
+            beta_tild[j] = soft_thresh_gr_l1(tmp,lamb,beta_tild[j],dbn1);
+        }
+    }
+}
+
+// beta_tild = soft(beta1-grad/L, ilambda)
+void prox_beta_est_mcp(double *beta_tild, double *beta, double *grad, double L, double lamb, double gamma, int d){
+    int i;
+    
+    for (i=0; i<d; i++) {
+        beta_tild[i] = beta[i] - grad[i]/L;
+        beta_tild[i] = soft_thresh_mcp(beta_tild[i], lamb, gamma); //fabs(beta_tild[i])>0 ? sign(beta_tild[i])*(fabs(beta_tild[i])-lamb) : 0;
+    }
+}
+
+// beta_tild = soft(beta1-grad/L, ilambda)
+void prox_beta_est_scad(double *beta_tild, double *beta, double *grad, double L, double lamb, double gamma, int d){
+    int i;
+    
+    for (i=0; i<d; i++) {
+        beta_tild[i] = beta[i] - grad[i]/L;
+        beta_tild[i] = soft_thresh_scad(beta_tild[i], lamb, gamma); //fabs(beta_tild[i])>0 ? sign(beta_tild[i])*(fabs(beta_tild[i])-lamb) : 0;
+    }
+}
+
 // beta_tild = gr_soft(beta1-grad/L, ilambda)
 void prox_beta_est_mvr(double *beta_tild, double *beta, double *grad, double *S, double L, double lamb, int p, int d){
     int i,j;
@@ -426,7 +528,6 @@ void prox_beta_est_mvr(double *beta_tild, double *beta, double *grad, double *S,
     for (i=0; i<p; i++) {
         for (j=0; j<d; j++) {
             beta_tild[i*d+j] = beta[i*d+j] - grad[i*d+j]/L;
-            //beta_tild[j*p+i] = beta[i*d+j] - grad[i*d+j]/L;
         }
     }
     
@@ -444,38 +545,125 @@ void prox_beta_est_mvr(double *beta_tild, double *beta, double *grad, double *S,
             }
         }
     }
-    
 }
 
-// x[i] = soft_l1(y,z);
-double soft_thresh_l1(double y, double z){
+// beta_tild = gr_soft(beta1-grad/L, ilambda), beta1 = soft(beta_tild)
+void prox_beta_est_mvr_l1(double *beta_tild, double *beta, double *grad, double *S, double L, double lamb, double n1, int p, int d){
+    int i,j;
+    double tmp;
     
-    if(y>z) return y-z;
-    else if(y<(-z)) return y+z;
-    else return 0;
-}
-
-// x[i] = soft_scad(y,z);
-double soft_thresh_scad(double y, double z, double gamma){
+    for (i=0; i<p; i++) {
+        for (j=0; j<d; j++) {
+            beta_tild[i*d+j] = beta[i*d+j] - grad[i*d+j]/L;
+        }
+    }
     
-    if(fabs(y)>fabs(gamma*z)) {
-        return y;
-    }else{
-        if(fabs(y)>fabs(2*z)) {
-            return soft_thresh_l1(y, gamma*z/(gamma-1))/(1-1/(gamma-1));
-        }else{
-            return soft_thresh_l1(y, z);
+    for (i=0; i<d; i++) {
+        tmp = norm2_gr_mvr(beta_tild+i, d, p);
+        for (j=0; j<p; j++) {
+            beta_tild[j*d+i] = soft_thresh_gr_l1(tmp,lamb,beta_tild[j*d+i],n1);
         }
     }
 }
 
-// x[i] = soft_mcp(y,z);
-double soft_thresh_mcp(double y, double z, double gamma){
+// beta_tild = gr_soft(beta1-grad/L, ilambda)
+void prox_beta_est_mvr_mcp(double *beta_tild, double *beta, double *grad, double *S, double L, double lamb, double gamma, double n1, int p, int d){
+    int i,j;
+    double tmp;
     
-    if(fabs(y)>fabs(gamma*z)) {
+    for (i=0; i<p; i++) {
+        for (j=0; j<d; j++) {
+            beta_tild[i*d+j] = beta[i*d+j] - grad[i*d+j]/L;
+        }
+    }
+    
+    for (i=0; i<d; i++) {
+        tmp = norm2_gr_mvr(beta_tild+i, d, p);
+        for (j=0; j<p; j++) {
+            beta_tild[j*d+i] = soft_thresh_gr_mcp(tmp,lamb,beta_tild[j*d+i],gamma,n1);
+        }
+    }
+}
+
+// beta_tild = gr_soft(beta1-grad/L, ilambda)
+void prox_beta_est_mvr_scad(double *beta_tild, double *beta, double *grad, double *S, double L, double lamb, double gamma, double n1, int p, int d){
+    int i,j;
+    double tmp;
+    
+    for (i=0; i<p; i++) {
+        for (j=0; j<d; j++) {
+            beta_tild[i*d+j] = beta[i*d+j] - grad[i*d+j]/L;
+        }
+    }
+    
+    for (i=0; i<d; i++) {
+        tmp = norm2_gr_mvr(beta_tild+i, d, p);
+        for (j=0; j<p; j++) {
+            beta_tild[j*d+i] = soft_thresh_gr_scad(tmp,lamb,beta_tild[j*d+i],gamma,n1);
+        }
+    }
+}
+
+// x[i] = soft_l1(y,lamb);
+double soft_thresh_l1(double y, double lamb){
+    
+    if(y>lamb) return y-lamb;
+    else if(y<(-lamb)) return y+lamb;
+    else return 0;
+}
+
+// x[i] = soft_scad(y,lamb);
+double soft_thresh_scad(double y, double lamb, double gamma){
+    
+    if(fabs(y)>fabs(gamma*lamb)) {
         return y;
     }else{
-        return soft_thresh_l1(y, z)/(1-1/gamma);
+        if(fabs(y)>fabs(2*lamb)) {
+            return soft_thresh_l1(y, gamma*lamb/(gamma-1))/(1-1/(gamma-1));
+        }else{
+            return soft_thresh_l1(y, lamb);
+        }
+    }
+}
+
+// x[i] = soft_mcp(y,lamb);
+double soft_thresh_mcp(double y, double lamb, double gamma){
+    
+    if(fabs(y)>fabs(gamma*lamb)) {
+        return y;
+    }else{
+        return soft_thresh_l1(y, lamb)/(1-1/gamma);
+    }
+}
+
+double soft_thresh_gr_l1(double y, double lamb, double beta, double dbn1){
+    if(y>lamb) return (1-lamb/y)*beta*dbn1;
+    else return 0;
+}
+
+double soft_thresh_gr_mcp(double y, double lamb, double beta, double gamma, double dbn1){
+    if(y>lamb*gamma){
+        return beta*dbn1;
+    }else{
+        //return soft_thresh_gr_l1(y, lamb, beta, dbn1)*gamma/(gamma-1);
+        if(y>lamb) return (1-lamb/y)*beta*dbn1*gamma/(gamma-1);
+        else return 0;
+    }
+}
+
+double soft_thresh_gr_scad(double y, double lamb, double beta, double gamma, double dbn1){
+    if(y>lamb*gamma){
+        return beta*dbn1;
+    }else{
+        if(y>2*lamb){
+            //return soft_thresh_gr_l1(y, lamb*gamma/(gamma-1), beta, dbn1)*(gamma-1)/(gamma-2);
+            if(y>lamb*gamma/(gamma-1)) return (1-lamb*gamma/(gamma-1)/y)*beta*dbn1*(gamma-1)/(gamma-2);
+            else return 0;
+        }else{
+            //return soft_thresh_gr_l1(y, lamb, beta, dbn1);
+            if(y>lamb) return (1-lamb/y)*beta*dbn1;
+            else return 0;
+        }
     }
 }
 
@@ -497,6 +685,27 @@ void X_beta_update(double *Xb, double *X, double beta, int n){
     
     for (i=0; i<n; i++) {
         Xb[i] = Xb[i] + beta*X[i];
+    }
+}
+
+// Xb = Xb+dif*X[,gr]*beta[gr]
+void X_beta_update_gr(double *Xb, double *X, double *beta, int gr, int gr_size, int n, double dif){
+    int i,j;
+    
+    if(dif>0){
+        for (i=gr; i<gr+gr_size; i++) {
+            for (j=0; j<n; j++) {
+                Xb[j] = Xb[j] + X[i*n+j]*beta[i];
+            }
+        }
+    }
+    
+    if(dif<0){
+        for (i=gr; i<gr+gr_size; i++) {
+            for (j=0; j<n; j++) {
+                Xb[j] = Xb[j] - X[i*n+j]*beta[i];
+            }
+        }
     }
 }
 
@@ -528,12 +737,12 @@ void get_grad_logit_lin(double *grad, double *beta1, double *p_Y, double *X, int
 }
 
 // g = <p-Y, X>/n
-double get_grad_logit_l1(double *p, double *Y, double *X, int n){
+double get_grad_logit_l1(double *p_Y, double *X, int n){
     int i;
     double tmp = 0;
     
     for (i=0; i<n; i++) {
-        tmp += (p[i]-Y[i])*X[i];
+        tmp += (p_Y[i])*X[i];
     }
     return tmp/(double)n;
 }
@@ -553,13 +762,13 @@ void get_grad_logit_l1_vec(double *grad, double *p_Y, double *X, int n, int d){
 }
 
 // g = <p-Y, X>/n + h_grad(scad)
-double get_grad_logit_scad(double *p, double *Y, double *X, double beta, double lambda, double gamma, int n){
+double get_grad_logit_scad(double *p_Y, double *X, double beta, double lambda, double gamma, int n){
     int i;
     double tmp, h_grad, beta_abs;
     
     tmp = 0;
     for (i=0; i<n; i++) {
-        tmp += (p[i]-Y[i])*X[i];
+        tmp += (p_Y[i])*X[i];
     }
     
     beta_abs = fabs(beta);
@@ -572,7 +781,7 @@ double get_grad_logit_scad(double *p, double *Y, double *X, double beta, double 
             h_grad = -lambda*sign(beta);
         }
     }
-    return tmp/(double)n + h_grad/1.5;
+    return tmp/(double)n + h_grad/1.2;
 }
 
 // grad = <p-Y, X>/n + h_grad(scad)
@@ -599,7 +808,63 @@ void get_grad_logit_scad_vec(double *grad, double *p_Y, double *X, double *beta,
                 h_grad = -lambda*sign(beta[i]);
             }
         }
-        grad[i] = tmp/doublen + h_grad/1.5;
+        grad[i] = tmp/doublen + h_grad/1.2;
+    }
+}
+
+// g[gr] = <p-Y, X[,gr]>/n + h_grad(scad)
+void get_grad_logit_gr_scad(double *g, double *p_Y, double *X, double *beta, int gr, int gr_size, double lambda, double gamma, int n){
+    int i,j;
+    double h_grad, doublen, gamlamb, beta_abs;
+    
+    doublen = (double)n;
+    gamlamb = gamma*lambda;
+    for(j=gr; j<gr+gr_size; j++) {
+        g[j] = 0;
+        for (i=0; i<n; i++) {
+            g[j] += p_Y[i]*X[j*n+i];
+        }
+        
+        beta_abs = fabs(beta[j]);
+        if(beta_abs<=lambda){
+            h_grad = 0;
+        }else{
+            if(beta_abs<=gamlamb){
+                h_grad = (lambda*sign(beta[j])-beta[j])/(gamma-1);
+            }else{
+                h_grad = -lambda*sign(beta[j]);
+            }
+        }
+        g[j] = g[j]/doublen + h_grad/2;
+    }
+}
+
+// g = <p-Y, X>/n + h_grad(scad)
+void get_grad_logit_gr_scad_all(double *g, double *p_Y, double *X, double *beta, int *gr, int *gr_size, int gr_n, double lambda, double gamma, int n){
+    int i,j,k;
+    double h_grad, doublen, gamlamb, beta_abs;
+    
+    doublen = (double)n;
+    gamlamb = gamma*lambda;
+    for (k=0; k<gr_n; k++) {
+        for (j=gr[k]; j<gr[k]+gr_size[k]; j++) {
+            g[j] = 0;
+            for (i=0; i<n; i++) {
+                g[j] += p_Y[i]*X[j*n+i];
+            }
+            
+            beta_abs = fabs(beta[j]);
+            if(beta_abs<=lambda){
+                h_grad = 0;
+            }else{
+                if(beta_abs<=gamlamb){
+                    h_grad = (lambda*sign(beta[j])-beta[j])/(gamma-1);
+                }else{
+                    h_grad = -lambda*sign(beta[j]);
+                }
+            }
+            g[j] = g[j]/doublen + h_grad/2;
+        }
     }
 }
 
@@ -658,13 +923,13 @@ void get_grad_scio_scad_vec(double *grad, double *e, double *S, double *beta, in
 }
 
 // g = <p-Y, X>/n + h_grad(mcp)
-double get_grad_logit_mcp(double *p, double *Y, double *X, double beta, double lambda, double gamma, int n){
+double get_grad_logit_mcp(double *p_Y, double *X, double beta, double lambda, double gamma, int n){
     int i;
     double tmp, h_grad, beta_abs;
     
     tmp = 0;
     for (i=0; i<n; i++) {
-        tmp += (p[i]-Y[i])*X[i];
+        tmp += (p_Y[i])*X[i];
     }
     
     beta_abs = fabs(beta);
@@ -673,7 +938,7 @@ double get_grad_logit_mcp(double *p, double *Y, double *X, double beta, double l
     }else{
         h_grad = -lambda*sign(beta);
     }
-    return tmp/(double)n + h_grad/1.5;
+    return tmp/(double)n + h_grad/1.2;
 }
 
 // grad = <p-Y, X>/n + h_grad(mcp)
@@ -694,7 +959,81 @@ void get_grad_logit_mcp_vec(double *grad, double *p_Y, double *X, double *beta, 
         }else{
             h_grad = -lambda*sign(beta[i]);
         }
-        grad[i] = tmp/doublen + h_grad/1.5;
+        grad[i] = tmp/doublen + h_grad/1.2;
+    }
+}
+
+// g[gr] = <p-Y, X[,gr]>/n
+void get_grad_logit_gr_l1(double *g, double *p_Y, double *X, int gr, int gr_size, int n){
+    int i,j;
+    
+    for (j=gr; j<gr+gr_size; j++) {
+        g[j] = 0;
+        for (i=0; i<n; i++) {
+            g[j] += (p_Y[i])*X[j*n+i];
+        }
+        g[j] = g[j]/(double)n;
+    }
+}
+
+// g = <p-Y, X>/n
+void get_grad_logit_gr_l1_all(double *g, double *p_Y, double *X, int* gr, int* gr_size, int gr_n, int n){
+    int i,j,k;
+    
+    for (k=0; k<gr_n; k++) {
+        for (j=gr[k]; j<gr[k]+gr_size[k]; j++) {
+            g[j] = 0;
+            for (i=0; i<n; i++) {
+                g[j] += (p_Y[i])*X[j*n+i];
+            }
+            g[j] = g[j]/(double)n;
+        }
+    }
+}
+
+// g[gr] = <p-Y, X[,gr]>/n + h_grad(mcp)
+void get_grad_logit_gr_mcp(double *g, double *p_Y, double *X, double *beta, int gr, int gr_size, double lambda, double gamma, int n){
+    int i,j;
+    double h_grad, doublen, gamlamb;
+    
+    doublen = (double)n;
+    gamlamb = gamma*lambda;
+    for(j=gr; j<gr+gr_size; j++) {
+        g[j] = 0;
+        for (i=0; i<n; i++) {
+            g[j] += p_Y[i]*X[j*n+i];
+        }
+        
+        if(fabs(beta[j])<=gamlamb){
+            h_grad = -beta[j]/gamma;
+        }else{
+            h_grad = -lambda*sign(beta[j]);
+        }
+        g[j] = g[j]/doublen + h_grad/2;
+    }
+}
+
+// g = <p-Y, X>/n + h_grad(mcp)
+void get_grad_logit_gr_mcp_all(double *g, double *p_Y, double *X, double *beta, int *gr, int *gr_size, int gr_n, double lambda, double gamma, int n){
+    int i,j,k;
+    double h_grad, doublen, gamlamb;
+    
+    doublen = (double)n;
+    gamlamb = gamma*lambda;
+    for (k=0; k<gr_n; k++) {
+        for (j=gr[k]; j<gr[k]+gr_size[k]; j++) {
+            g[j] = 0;
+            for (i=0; i<n; i++) {
+                g[j] += p_Y[i]*X[j*n+i];
+            }
+            
+            if(fabs(beta[j])<=gamlamb){
+                h_grad = -beta[j]/gamma;
+            }else{
+                h_grad = -lambda*sign(beta[j]);
+            }
+            g[j] = g[j]/doublen + h_grad/2;
+        }
     }
 }
 
@@ -742,19 +1081,6 @@ void get_grad_scio_mcp_vec(double *grad, double *e, double *S, double *beta, int
     }
 }
 
-// g = X[gr]^T (p-Y)/n
-void get_grad_logit_gr(double *g, double *p, double *Y, double *X, int gr, int gr_size, int n){
-    int i,j;
-    
-    for (j=gr; j<gr+gr_size; j++) {
-        g[j] = 0;
-        for (i=0; i<n; i++) {
-            g[j] += (p[i]-Y[i])*X[j*n+i];
-        }
-        g[j] = g[j]/(double)n;
-    }
-}
-
 // || beta[gr] ||
 double norm2_gr_vec(double *beta, int gr,int gr_size){
     int i;
@@ -777,6 +1103,15 @@ double norm2_gr_vec_dif(double *x, double *y, double w, int gr,int gr_size){
         tmp += tmp1*tmp1;
     }
     return sqrt(tmp);
+}
+
+// z[gr] = x[gr]-y[gr]/w
+void logit_gr_vec_dif(double *z, double *x, double *y, double w, int gr,int gr_size){
+    int i;
+    
+    for (i=gr; i<gr+gr_size; i++) {
+        z[i] = x[i]-y[i]/w;
+    }
 }
 
 // || x[c_row,] ||
@@ -817,6 +1152,7 @@ void norm2_row_mat(double *y, double *x, int d, int p){
             tmp = x[j*d+i];
             y[i] += tmp*tmp;
         }
+        y[i] = sqrt(y[i]);
     }
 }
 
@@ -881,6 +1217,7 @@ void rtfind_mvr(double rt_l, double rt_r, double *x, int c_col, int c_row, int d
     x[c_col*d+c_row] = rt_m;
 }
 
+// ||x||_1
 double l1norm(double * x, int n){
     int i;
     double tmp=0;
@@ -890,6 +1227,7 @@ double l1norm(double * x, int n){
     return tmp;
 }
 
+// v_out = |v_in|
 void fabs_vc(double *v_in, double *v_out, int n){
     int i;
 
@@ -1329,4 +1667,104 @@ void equ_mat(double *x0, double *x1, int *nn, int *mm)
             x0[i*n+j] = x1[i*n+j];
         }
     }
+}
+
+// ||res||_F^2/2 + lamb||beta||_1,2
+double get_obj_mvr(double *res, double *beta, double *xinvc, double *uinv, int *gr_act, int gr_size_a, int n, int d, int p, double lamb){
+    int i,j,idx;
+    double tmp1, tmp2, tmp3;
+    
+    tmp1 = 0;
+    for (i=0; i<gr_size_a; i++) {
+        idx = gr_act[i];
+        tmp2 = 0;
+        for(j=0; j<p; j++){
+            tmp3 = beta[j*d+idx]*uinv[idx]*xinvc[idx];
+            tmp2 += tmp3*tmp3;
+        }
+        tmp1 += sqrt(tmp2);
+    }
+    tmp1 = tmp1*lamb;
+    tmp2 = 0;
+    for (i=0; i<p; i++) {
+        for(j=0; j<n; j++){
+            tmp2 += res[i*n+j]*res[i*n+j];
+        }
+    }
+    return tmp2/2 + tmp1;
+}
+
+// ||res||_F^2/2 + lamb||beta||_1,2
+double get_obj_mvr1(double *res, double *beta, double *xinvc, int *gr_act, int gr_size_a, int n, int d, int p, double lamb){
+    int i,j,idx;
+    double tmp1, tmp2, tmp3;
+    
+    tmp1 = 0;
+    for (i=0; i<gr_size_a; i++) {
+        idx = gr_act[i];
+        tmp2 = 0;
+        for(j=0; j<p; j++){
+            tmp3 = beta[j*d+idx]*xinvc[idx];
+            tmp2 += tmp3*tmp3;
+        }
+        tmp1 += sqrt(tmp2);
+    }
+    tmp1 = tmp1*lamb;
+    tmp2 = 0;
+    for (i=0; i<p; i++) {
+        for(j=0; j<n; j++){
+            tmp2 += res[i*n+j]*res[i*n+j];
+        }
+    }
+    return tmp2/2 + tmp1;
+}
+
+// ||res||_2^2
+double vec_2normsq(double *x, int n){
+    int i;
+    double tmp;
+    
+    tmp = 0;
+    for (i=0; i<n; i++) {
+        tmp += x[i]*x[i];
+    }
+    return tmp;
+}
+
+// loss(logit)
+double loss_logit(double *Y, double *Xb, double intcpt, int n){
+    int i;
+    double tmp, tmp1;
+    
+    tmp = 0;
+    for (i=0; i<n; i++) {
+        tmp1 = Xb[i]+intcpt;
+        tmp += log(1+exp(tmp1))-Y[i]*tmp1;
+    }
+    return tmp;
+}
+
+// ||beta*xinvc||_1
+double l1norm_scale(double *beta, double * xinvc, int *set_act, int size_a){
+    int i,idx;
+    double tmp;
+    
+    tmp = 0;
+    for (i=0; i<size_a; i++) {
+        idx = set_act[i];
+        tmp += fabs(beta[idx])*xinvc[idx];
+    }
+    return tmp;
+}
+
+// ||beta||_1
+double l1norm_act(double *beta, int *set_act, int size_a){
+    int i;
+    double tmp;
+    
+    tmp = 0;
+    for (i=0; i<size_a; i++) {
+        tmp += fabs(beta[set_act[i]]);
+    }
+    return tmp;
 }

@@ -6,11 +6,12 @@ void SFGen(int *dd0, int*dd, int *G, int *seed){
     d0 = dd0[0];
     d = dd[0];
     double x;
-    int *size_a = (int*) malloc((d)*sizeof(int));
+    int *size_a = (int*) Calloc(d, int);
     int tmp;
     int total;
 
-    srand(*seed);
+    //srand(*seed);
+    //set_seed(*seed,*seed);
 
     for(i=0;i<(d0-1);i++){
         G[i*d+i+1] = 1;
@@ -28,7 +29,9 @@ void SFGen(int *dd0, int*dd, int *G, int *seed){
     total = 2*d0;
     
     for(i=d0;i<d;i++){
-        x = (double) total*rand()/RAND_MAX;
+        GetRNGstate();
+        x = (double) total*unif_rand();
+        PutRNGstate();
         tmp = 0;
         j = 0;
         while(tmp<x&&j<i){
@@ -42,5 +45,5 @@ void SFGen(int *dd0, int*dd, int *G, int *seed){
         size_a[j]++;
         size_a[i]++;
     }
-    free(size_a);
+    Free(size_a);
 }

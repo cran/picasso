@@ -66,7 +66,7 @@ beta = c(rep(sqrt(1/3),3),rep(0,d-3))
 Y.fit = X.fit\%*\%beta+eps
 
 ## Regression with "l1".
-out=picasso.lasso(X=X.fit,Y=Y.fit,lambda=lambda)
+out=picasso(X=X.fit,Y=Y.fit,lambda=lambda,family="gaussian")
 
 ## Display results
 Y=predict(out,X.pred)
@@ -75,5 +75,5 @@ Y=predict(out,X.pred)
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
-\code{\link{picasso.lasso}} and \code{\link{picasso-package}}.
+\code{\link{picasso}} and \code{\link{picasso-package}}.
 }

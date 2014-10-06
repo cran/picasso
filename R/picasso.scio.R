@@ -1,13 +1,13 @@
 #----------------------------------------------------------------------------------#
-# Package: picasso                                                                  #
-# picasso.scio(): The user interface for scio()                                     #
+# Package: picasso                                                                 #
+# picasso.scio(): The user interface for scio()                                    #
 # Author: Xingguo Li                                                               #
 # Email: <xingguo.leo@gmail.com>                                                   #
 # Date: Aug 2nd, 2014                                                              #
 # Version: 0.1.0                                                                   #
 #----------------------------------------------------------------------------------#
 
-picasso.scio <- function(data,
+picasso.scio <- function(X,
                          lambda = NULL,
                          nlambda = NULL,
                          lambda.min.ratio = NULL,
@@ -15,23 +15,34 @@ picasso.scio <- function(data,
                          alg = "cyclic",
                          gamma = 3,
                          sym = "or",
+                         truncation = 0, 
                          prec = 1e-4,
                          max.ite = 1e4,
                          standardize = FALSE,
                          perturb = TRUE,
                          verbose = TRUE)
 {
-  n = nrow(data)
-  d = ncol(data)
+  n = nrow(X)
+  d = ncol(X)
   if(verbose)
     cat("Sparse column inverse operator \n")
   if(n==0 || d==0) {
     cat("No data input.\n")
     return(NULL)
   }
+  if(method!="l1" && method!="mcp" && method!="scad"){
+    cat(" Wrong \"method\" input. \n \"method\" should be one of \"l1\", \"mcp\" and \"scad\".\n", 
+        method,"does not exist. \n")
+    return(NULL)
+  }
+  if(alg!="cyclic" && alg!="greedy" && alg!="prox" && alg!="stoc"){
+    cat(" Wrong \"alg\" input. \n \"alg\" should be one of \"cyclic\", \"greedy\", \"prox\" and \"stoc\".\n", 
+        alg,"does not exist. \n")
+    return(NULL)
+  }
   maxdf = max(n,d)
   est = list()
-  est$cov.input = isSymmetric(data)
+  est$cov.input = isSymmetric(X)
   if(est$cov.input)
   {
     if(verbose) {
@@ -42,20 +53,20 @@ picasso.scio <- function(data,
       return(NULL)
     }
     if(correlation)
-      S = cov2cor(data)
+      S = cov2cor(X)
     else
-      S = data
+      S = X
   }
   correlation = FALSE
   if(!est$cov.input)
   {
     if(standardize)
-      data = scale(data)
+      X = scale(X)
     
     if(correlation)
-      S = cor(data)
+      S = cor(X)
     else
-      S = cov(data)
+      S = cov(X)
   }
   
   if(!is.null(lambda)) nlambda = length(lambda)
@@ -85,42 +96,45 @@ picasso.scio <- function(data,
   }
   S = S + diag(d)*perturb
   if(method == "l1"){
+    method.flag = 1
     if(alg=="cyclic") 
-      out = scio.l1.cyclic(S, lambda, nlambda, d, maxdf, prec, max.ite, verbose)
+      out = scio.cyclic(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag, truncation)
     if(alg=="greedy") 
-      out = scio.l1.greedy(S, lambda, nlambda, d, maxdf, prec, max.ite, verbose)
+      out = scio.greedy(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
     if(alg=="prox") 
-      out = scio.l1.prox(S, lambda, nlambda, d, maxdf, prec, max.ite, verbose)
+      out = scio.prox(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
     if(alg=="stoc") 
-      out = scio.l1.stoc(S, lambda, nlambda, d, maxdf, prec, max.ite, verbose)
+      out = scio.stoc(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
   }
   if(method == "mcp"){
+    method.flag = 2
     if (gamma<=1) {
       cat("gamma > 1 is required for MCP. Set to default value 3. \n")
       gamma = 3
     }
     if(alg=="cyclic") 
-      out = scio.mcp.cyclic(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose)
+      out = scio.cyclic(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag, truncation)
     if(alg=="greedy") 
-      out = scio.mcp.greedy(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose)
+      out = scio.greedy(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
     if(alg=="prox") 
-      out = scio.mcp.prox(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose)
+      out = scio.prox(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
     if(alg=="stoc") 
-      out = scio.mcp.stoc(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose)
+      out = scio.stoc(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
   }
   if(method == "scad"){
+    method.flag = 3
     if (gamma<=2) {
       cat("gamma > 2 is required for SCAD. Set to default value 3. \n")
       gamma = 3
     }
     if(alg=="cyclic") 
-      out = scio.scad.cyclic(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose)
+      out = scio.cyclic(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag, truncation)
     if(alg=="greedy") 
-      out = scio.scad.greedy(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose)
+      out = scio.greedy(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
     if(alg=="prox") 
-      out = scio.scad.prox(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose)
+      out = scio.prox(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
     if(alg=="stoc") 
-      out = scio.scad.stoc(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose)
+      out = scio.stoc(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
   }
   runt=Sys.time()-begt
   est$runtime = runt
@@ -161,10 +175,12 @@ picasso.scio <- function(data,
     est$sparsity[i] = sum(est$path[[i]])/d/(d-1)
   }
   rm(G)
-  est$icov = out$icov
-  est$icov1 = out$icov1
+  est$obj = out$obj
+  est$runt = out$runt
+  est$beta = out$icov
+  est$beta1 = out$icov1
   est$sigma = S
-  est$data = data
+  est$X = X
   est$method = method
   est$alg = alg
   est$gamma = gamma
@@ -185,7 +201,7 @@ print.scio <- function(x, ...)
   print(signif(x$lambda,digits=3))
   cat("Method=", x$method, "\n")
   cat("Path length:",x$nlambda,"\n")
-  cat("Graph dimension:",ncol(x$data),"\n")
+  cat("Graph dimension:",ncol(x$X),"\n")
   cat("Sparsity level:",min(x$sparsity),"----->",max(x$sparsity),"\n")
 }
 

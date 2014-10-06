@@ -1,9 +1,6 @@
 useDynLib("picasso")
 import("MASS","igraph","Matrix","lattice")
-export("picasso.lasso",
-       "picasso.logit",
-       "picasso.mvr",
-       "picasso.scio",
+export("picasso",
        "scio.generator",
        "print.lasso",
        "plot.lasso",

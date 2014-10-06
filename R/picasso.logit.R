@@ -1,6 +1,6 @@
 #----------------------------------------------------------------------------------#
-# Package: picasso                                                                  #
-# picasso.logit(): The user interface for lasso()                                   #
+# Package: picasso                                                                 #
+# picasso.logit(): The user interface for lasso()                                  #
 # Author: Xingguo Li                                                               #
 # Email: <xingguo.leo@gmail.com>                                                   #
 # Date: Jul 26th, 2014                                                             #
@@ -15,9 +15,12 @@ picasso.logit <- function(X,
                           method="l1",
                           alg = "cyclic",
                           gamma = 3,
+                          design.sd = TRUE,
                           gr = NULL,
-                          gr.n = NULL,
+                          gr.d = NULL,
                           gr.size = NULL,
+                          max.act.in = 3, 
+                          truncation = 0, 
                           prec = 1e-4,
                           max.ite = 1e4,
                           verbose = TRUE)
@@ -30,14 +33,24 @@ picasso.logit <- function(X,
     cat("No data input.\n")
     return(NULL)
   }
-  design.sd = TRUE
+  if(method!="l1" && method!="mcp" && method!="scad" && method!="group" && method!="group.mcp" && method!="group.scad"){
+    cat(" Wrong \"method\" input. \n \"method\" should be one of \"l1\", \"mcp\", \"scad\", \"group\", \"group.mcp\" and \"group.scad\".\n", 
+        method,"does not exist. \n")
+    return(NULL)
+  }
+  if(alg!="cyclic" && alg!="greedy" && alg!="prox" && alg!="stoc"){
+    cat(" Wrong \"alg\" input. \n \"alg\" should be one of \"cyclic\", \"greedy\", \"prox\" and \"stoc\".\n", 
+        alg,"does not exist. \n")
+    return(NULL)
+  }
   if(design.sd==TRUE){
     maxdf = max(n,d)
     xm=matrix(rep(colMeans(X),n),nrow=n,ncol=d,byrow=T)
     x1=X-xm
-    sdxinv=1/sqrt(colSums(x1^2)/(n-1))
-    xx=x1*matrix(rep(sdxinv,n),nrow=n,ncol=d,byrow=T)
+    xinvc.vec=1/sqrt(colSums(x1^2)/(n-1))
+    xx=x1%*%diag(xinvc.vec)
   }else{
+    xinvc.vec = rep(1,d)
     xx = X
   }
   yy = Y
@@ -57,52 +70,55 @@ picasso.logit <- function(X,
   }
   begt=Sys.time()
   if(method=="l1") {
+    method.flag = 1
     if (alg=="cyclic")
-      out = logit.l1.cyclic(yy, xx, lambda, nlambda, n, d, max.ite, prec, verbose)
+      out = logit.cyclic(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
     if (alg=="greedy")
-      out = logit.l1.greedy(yy, xx, lambda, nlambda, n, d, max.ite, prec, verbose)
+      out = logit.greedy(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
     if (alg=="prox")
-      out = logit.l1.prox(yy, xx, lambda, nlambda, n, d, max.ite, prec, verbose)
+      out = logit.prox(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
     if (alg=="stoc")
-      out = logit.l1.stoc(yy, xx, lambda, nlambda, n, d, max.ite, prec, verbose)
+      out = logit.stoc(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
   }
   if(method=="scad") {
+    method.flag = 3
     if (gamma<=2) {
       cat("\"gamma\">2 is required for SCAD. Set to default value 3. \n")
       gamma = 3
     }
     if (alg=="cyclic")
-      out = logit.scad.cyclic(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose)
+      out = logit.cyclic(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
     if (alg=="greedy")
-      out = logit.scad.greedy(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose)
+      out = logit.greedy(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
     if (alg=="prox")
-      out = logit.scad.prox(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose)
+      out = logit.prox(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
     if (alg=="stoc")
-      out = logit.scad.stoc(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose)
+      out = logit.stoc(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
   }
   if(method=="mcp") {
+    method.flag = 2
     if (gamma<=1) {
       cat("\"gamma\">1 is required for MCP. Set to default value 3. \n")
       gamma = 3
     }
     if (alg=="cyclic")
-      out = logit.mcp.cyclic(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose)
+      out = logit.cyclic(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
     if (alg=="greedy")
-      out = logit.mcp.greedy(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose)
+      out = logit.greedy(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
     if (alg=="prox")
-      out = logit.mcp.prox(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose)
+      out = logit.prox(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
     if (alg=="stoc")
-      out = logit.mcp.stoc(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose)
+      out = logit.stoc(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
   }
-  if(method=="glasso") {
+  if(method=="group"||method=="group.mcp"||method=="group.scad") {
     if (is.null(gr)) {
       gr = list()
-      if(is.null(gr.n)){
+      if(is.null(gr.d)){
         if(is.null(gr.size)){
-          igr.size = 2
-          gr.n = ceiling(d/igr.size)
-          gr.size = rep(igr.size,gr.n)
-          if(sum(gr.size)>d) gr.size[gr.n] = gr.size[gr.n] - (sum(gr.size)-d)
+          gr.d = 2
+          gr.n = ceiling(d/gr.d)
+          gr.size = rep(gr.d,gr.n)
+          if(sum(gr.size)>d) gr.size[gr.n] = d - sum(gr.size[1:(gr.n-1)])
         }else{
           if(sum(gr.size)!=d) {
             cat('Group size error... sum(gr.size) !=',d,'\n')
@@ -111,26 +127,15 @@ picasso.logit <- function(X,
           gr.n = length(gr.size)
         }
       }else{
-        if(gr.n>d){
-          cat('Group size error... gr.n >',d,'\n')
+        if(gr.d>d){
+          cat('Dimension of per group error... gr.d >',d,'\n')
           return(NULL)
         }
-        if(is.null(gr.size)){
-          igr.size1 = ceiling(d/gr.n)
-          igr.size2 = igr.size1-1
-          gr.n1 = d-gr.n*igr.size2
-          gr.n2 = gr.n-gr.n1
-          gr.size = c(rep(igr.size1,gr.n1),rep(igr.size2,gr.n2))
-        }else{
-          if(sum(gr.size)!=d) {
-            cat('Group size error... sum(gr.size) !=',d,'\n')
-            return(NULL)
-          }
-          if(length(gr.size)!=gr.n) {
-            cat('Group size does not match... length(gr.size)!=gr.n \n')
-            return(NULL)
-          }
-        }
+        if(!is.null(gr.size))
+          cat('Group decided by gr.d \n')
+        gr.n = ceiling(d/gr.d)
+        gr.size = rep(gr.d,gr.n)
+        if(sum(gr.size)>d) gr.size[gr.n] = d - sum(gr.size[1:(gr.n-1)])
       }
       idx = 1
       for(i in 1:gr.n){
@@ -157,12 +162,13 @@ picasso.logit <- function(X,
           }
         }
       }else{
-        if(gr.n>d){
-          cat('Group size error... gr.n >',d,'\n')
-          return(NULL)
+        if(gr.n != length(gr)){
+          gr.n = length(gr)
+          cat('Group size error... gr.n !=',gr.n,'. Set gr.n=length(gr) \n')
         }
         if(is.null(gr.size)){
-          gr.size = rep(0,gr.n)
+          gr.size = rep(1,gr.n)
+          idx = c(1:d)
           for(i in 1:gr.n){
             gr.size[i] = length(gr[[i]])
             if(max(gr[[i]])>d) {
@@ -170,7 +176,10 @@ picasso.logit <- function(X,
               cat('Group index error... gr[[',i,']][',max.idx,'] >',d,'\n')
               return(NULL)
             }
+            idx[gr[[i]]] = 0
           }
+          if(sum(idx)>0)
+            cat('Index ', which(idx==1),' not in the group \n')
         }else{
           if(sum(gr.size)!=d) {
             cat('Group size error... sum(gr.size) !=',d,'\n')
@@ -179,14 +188,39 @@ picasso.logit <- function(X,
         }
       }
     }
-    if (alg=="cyclic") 
-      out = logit.gr.cyclic(yy, xx, gr, gr.n, gr.size, lambda, nlambda, n, d, max.ite, prec, verbose)
-    if (alg=="greedy") 
-      out = logit.gr.greedy(yy, xx, gr, gr.n, gr.size, lambda, nlambda, n, d, max.ite, prec, verbose)
-    if (alg=="prox") 
-      out = logit.gr.prox(yy, xx, gr, gr.n, gr.size, lambda, nlambda, n, d, max.ite, prec, verbose)
-    if (alg=="stoc") 
-      out = logit.gr.stoc(yy, xx, gr, gr.n, gr.size, lambda, nlambda, n, d, max.ite, prec, verbose)
+    if (method=="group"){
+      method.flag = 1
+      if (alg=="cyclic") 
+        out = logit.gr.cyclic.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
+      if (alg=="greedy") 
+        out = logit.gr.greedy.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
+      if (alg=="prox") 
+        out = logit.gr.prox.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
+      if (alg=="stoc") 
+        out = logit.gr.stoc.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
+    }
+    if (method=="group.mcp"){
+      method.flag = 2
+      if (alg=="cyclic") 
+        out = logit.gr.cyclic.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
+      if (alg=="greedy") 
+        out = logit.gr.greedy.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
+      if (alg=="prox") 
+        out = logit.gr.prox.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
+      if (alg=="stoc") 
+        out = logit.gr.stoc.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
+    }
+    if (method=="group.scad"){
+      method.flag = 3
+      if (alg=="cyclic") 
+        out = logit.gr.cyclic.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
+      if (alg=="greedy") 
+        out = logit.gr.greedy.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
+      if (alg=="prox") 
+        out = logit.gr.prox.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
+      if (alg=="stoc") 
+        out = logit.gr.stoc.orth(yy, xx, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
+    }
   }
   runt=Sys.time()-begt
   
@@ -201,7 +235,7 @@ picasso.logit <- function(X,
   if(design.sd==TRUE){
     for(k in 1:nlambda){
       tmp.beta = out$beta[[k]]
-      beta1[,k]=sdxinv*tmp.beta
+      beta1[,k]=xinvc.vec*tmp.beta
       intcpt[k] = -as.numeric(xm[1,]%*%beta1[,k])+out$intcpt[k]
     }
   }else{
@@ -211,8 +245,10 @@ picasso.logit <- function(X,
     }
   }
   
+  est$obj = out$obj
+  est$runt = out$runt
   est$gr = gr
-  est$gr.n = gr.n
+  est$gr.d = gr.d
   est$gr.size = gr.size
   est$beta = beta1
   res = X%*%beta1+matrix(rep(intcpt,n),nrow=n,byrow=TRUE)
@@ -239,7 +275,7 @@ print.logit <- function(x, ...)
   print(signif(x$lambda,digits=3))
   cat("Method =", x$method, "\n")
   cat("Alg =", x$alg, "\n")
-  cat("Sparsity level:",min(x$sparsity),"----->",max(x$sparsity),"\n")
+  cat("Degree of freedom:",min(x$df),"----->",max(x$df),"\n")
   if(units.difftime(x$runtime)=="secs") unit="secs"
   if(units.difftime(x$runtime)=="mins") unit="mins"
   if(units.difftime(x$runtime)=="hours") unit="hours"

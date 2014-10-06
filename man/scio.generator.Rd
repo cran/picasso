@@ -85,7 +85,7 @@ Maintainer: Xingguo Li <xingguo.leo@gmail.com>
 %\references{
 %}
 \seealso{
-\code{\link{picasso.scio}} and \code{\link{picasso-package}}
+\code{\link{picasso}} and \code{\link{picasso-package}}
 }
 \examples{
 ## band graph with bandwidth 3

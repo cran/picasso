@@ -1,5 +1,7 @@
 #ifndef MYMATH_H
 #define MYMATH_H
+#define MATHLIB_STANDALONE
+#include "Rmath.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,7 +21,7 @@ double max_abs_vec(double * x, int n);
 
 double max_vec(double * x, int n);
 
-int max_norm2_gr(double *x, int *gr, int *gr_size, int gr_n);
+void max_norm2_gr(double *x, int *gr, int *gr_size, int gr_n, double *max_norm2, int *idx);
 
 int max_abs_idx(double * x, int n);
 
@@ -39,10 +41,16 @@ double vec_inprod(double *x, double *y, int n);
 void vec_mat_prod(double *x, double *y, double *z, int m, int n);
 
 // x = y^T z, y is m by n, z is n by d, x is m by d
-void vec_mat_prod_mvr(double *x, double *y, double *z, int m, int n, int d);
+void vec_mat_prod_mvr(double *x, double *y, double *z, int m, int n, int d, double dif);
 
 // || x^T y[,gr] ||
 double vec_inprod_gr_2norm(double *x, double *y, int gr, int gr_size, int n);
+
+// z = x^T y[,gr] ||
+void vec_inprod_gr(double *x, double *y, double *z, int gr, int gr_size, int n);
+
+// z[c_idx,] = y[,c_idx]^T * x
+void vec_inprod_mvr(double *x, double *y, double *z, int c_idx, int n, int d, int p);
 
 // || x(n by 1)^T y(n by p) ||
 double vec_mat_inprod_2norm(double *y, double *x, int n, int p);
@@ -94,18 +102,45 @@ void identfy_actgr(double *beta, int *gr_act, int *gr_size_a, int *gr, int *gr_s
 // beta1 = soft(beta1-grad/L, ilambda)
 void prox_beta_est(double *beta_tild, double *beta, double *grad, double L, double lamb, int d);
 
+void prox_beta_est_gr(double *beta_tild, double *beta, double *grad, double L, double lamb, int d, int *gr, int *gr_size, int gr_n, double dbn1);
+
+// beta_tild = soft(beta1-grad/L, ilambda)
+void prox_beta_est_mcp(double *beta_tild, double *beta, double *grad, double L, double lamb, double gamma, int d);
+
+// beta_tild = soft(beta1-grad/L, ilambda)
+void prox_beta_est_scad(double *beta_tild, double *beta, double *grad, double L, double lamb, double gamma, int d);
+
 // beta_tild = gr_soft(beta1-grad/L, ilambda)
 void prox_beta_est_mvr(double *beta_tild, double *beta, double *grad, double *S, double L, double lamb, int p, int d);
 
-double soft_thresh_l1(double y, double z);
+// beta_tild = gr_soft(beta1-grad/L, ilambda)
+void prox_beta_est_mvr_l1(double *beta_tild, double *beta, double *grad, double *S, double L, double lamb, double np1, int p, int d);
 
-double soft_thresh_scad(double y, double z, double gamma);
+// beta_tild = gr_soft(beta1-grad/L, ilambda)
+void prox_beta_est_mvr_mcp(double *beta_tild, double *beta, double *grad, double *S, double L, double lamb, double gamma, double np1, int p, int d);
 
-double soft_thresh_mcp(double y, double z, double gamma);
+// beta_tild = gr_soft(beta1-grad/L, ilambda)
+void prox_beta_est_mvr_scad(double *beta_tild, double *beta, double *grad, double *S, double L, double lamb, double gamma, double n1, int p, int d);
+
+double soft_thresh_l1(double y, double lamb);
+
+double soft_thresh_scad(double y, double lamb, double gamma);
+
+double soft_thresh_mcp(double y, double lamb, double gamma);
+
+double soft_thresh_gr_l1(double y, double lamb, double beta, double dbn1);
+
+double soft_thresh_gr_mcp(double y, double lamb, double beta, double gamma, double dbn1);
+
+double soft_thresh_gr_scad(double y, double lamb, double beta, double gamma, double dbn1);
 
 double sum_vec_dif(double *x, double *y, int n);
 
+// Xb = Xb+X*beta
 void X_beta_update(double *Xb, double *X, double beta, int n);
+
+// Xb = Xb+dif*X[,gr]*beta[gr]
+void X_beta_update_gr(double *Xb, double *X, double *beta, int gr, int gr_size, int n, double dif);
 
 void p_update(double *p, double *Xb, double intcpt, int n);
 
@@ -115,15 +150,21 @@ void grad_scio(double *grad, double *e, double *S, double *x, int *xa_idx, int s
 // grad = beta1 - <p-Y, X>/n/w
 void get_grad_logit_lin(double *grad, double *beta1, double *p_Y, double *X, int n, int d, double w);
 
-double get_grad_logit_l1(double *p, double *Y, double *X, int n);
+double get_grad_logit_l1(double *p_Y, double *X, int n);
 
 // g = <p-Y, X>/n
 void get_grad_logit_l1_vec(double *grad, double *p_Y, double *X, int n, int d);
 
-double get_grad_logit_scad(double *p, double *Y, double *X, double beta, double lambda, double gamma, int n);
+double get_grad_logit_scad(double *p_Y, double *X, double beta, double lambda, double gamma, int n);
 
 // grad = <p-Y, X>/n + h_grad(scad)
 void get_grad_logit_scad_vec(double *grad, double *p_Y, double *X, double *beta, double lambda, double gamma, int n, int d);
+
+// g[gr] = <p-Y, X[,gr]>/n + h_grad(scad)
+void get_grad_logit_gr_scad(double *g, double *p_Y, double *X, double *beta, int gr, int gr_size, double lambda, double gamma, int n);
+
+// g = <p-Y, X>/n + h_grad(scad)
+void get_grad_logit_gr_scad_all(double *g, double *p_Y, double *X, double *beta, int *gr, int *gr_size, int gr_n, double lambda, double gamma, int n);
 
 // e[j] - S[act,j]^T beta[act] + h_grad(scad)
 double get_grad_scio_scad(double e, double *S, double *beta, int * set_act, int size_a, double lambda, double gamma, int idx);
@@ -131,7 +172,13 @@ double get_grad_scio_scad(double e, double *S, double *beta, int * set_act, int 
 // grad = e - S[act,]^T beta[act] + h_grad(scad)
 void get_grad_scio_scad_vec(double *grad, double *e, double *S, double *beta, int * set_act, int size_a, double lambda, double gamma, int d);
 
-double get_grad_logit_mcp(double *p, double *Y, double *X, double beta, double lambda, double gamma, int n);
+double get_grad_logit_mcp(double *p_Y, double *X, double beta, double lambda, double gamma, int n);
+
+// g[gr] = <p-Y, X[,gr]>/n + h_grad(mcp)
+void get_grad_logit_gr_mcp(double *g, double *p_Y, double *X, double *beta, int gr, int gr_size, double lambda, double gamma, int n);
+
+// g = <p-Y, X>/n + h_grad(mcp)
+void get_grad_logit_gr_mcp_all(double *g, double *p_Y, double *X, double *beta, int *gr, int *gr_size, int gr_n, double lambda, double gamma, int n);
 
 // grad = <p-Y, X>/n + h_grad(mcp)
 void get_grad_logit_mcp_vec(double *grad, double *p_Y, double *X, double *beta, double lambda, double gamma, int n, int d);
@@ -142,13 +189,20 @@ double get_grad_scio_mcp(double e, double *S, double *beta, int * set_act, int s
 // grad = e - S[act,]^T beta[act] + h_grad(mcp)
 void get_grad_scio_mcp_vec(double *grad, double *e, double *S, double *beta, int * set_act, int size_a, double lambda, double gamma, int d);
 
-void get_grad_logit_gr(double *g, double *p, double *Y, double *X, int gr, int gr_size, int n);
+// g[gr] = X[gr]^T (p-Y)/n
+void get_grad_logit_gr_l1(double *g, double *p_Y, double *X, int gr, int gr_size, int n);
+
+// g = <p-Y, X>/n
+void get_grad_logit_gr_l1_all(double *g, double *p_Y, double *X, int* gr, int* gr_size, int gr_n, int n);
 
 // || beta[gr] ||
 double norm2_gr_vec(double *beta, int gr,int gr_size);
 
 // || x[gr]-y[gr]/w ||
 double norm2_gr_vec_dif(double *x, double *y, double w, int gr,int gr_size);
+
+// z[gr] = x[gr]-y[gr]/w
+void logit_gr_vec_dif(double *z, double *x, double *y, double w, int gr,int gr_size);
 
 // || x[c_row,] ||
 double norm2_gr_mvr(double *x, int d, int p);
@@ -225,6 +279,24 @@ double lnorm_12(double *x, int *nn, int *mm);
 void trunc_svd(double *U, double *Vt, double *S, double *x, double *eps, int *nn, int *mm, int *min_nnmm);
 
 void equ_mat(double *x0, double * x1, int *nn, int *mm);
+
+// ||res||_F^2/2 + lamb||beta||_1,2
+double get_obj_mvr(double *res, double *beta, double *xinvc, double *uinv, int *gr_act, int gr_size_a, int n, int d, int p, double lamb);
+
+// ||res||_F^2/2 + lamb||beta||_1,2
+double get_obj_mvr1(double *res, double *beta, double *xinvc, int *gr_act, int gr_size_a, int n, int d, int p, double lamb);
+
+// ||res||_2^2
+double vec_2normsq(double *x, int n);
+
+// loss(logit)
+double loss_logit(double *Y, double *Xb, double intcpt, int n);
+
+// ||beta*xinvc||_1
+double l1norm_scale(double *beta, double * xinvc, int *set_act, int size_a);
+
+// ||beta||_1
+double l1norm_act(double *beta, int *set_act, int size_a);
 
 void proj_mat_sparse(double *u, int *idx, int *size_u, double *lambda, int *nn, int *mm);
 

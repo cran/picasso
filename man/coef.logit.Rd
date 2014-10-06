@@ -30,5 +30,5 @@ Maintainer: Xingguo Li <xingguo.leo@gmail.com>
 }
 
 \seealso{
-\code{\link{picasso.logit}} and \code{\link{picasso-package}}.
+\code{\link{picasso}} and \code{\link{picasso-package}}.
 }

@@ -22,5 +22,5 @@ Xingguo Li, Tuo Zhao and Han Liu \cr
 Maintainer: Xingguo Li <xingguo.leo@gmail.com>
 }
 \seealso{
-\code{\link{picasso.scio}} and \code{\link{scio.generator}}
+\code{\link{picasso}} and \code{\link{scio.generator}}
 }

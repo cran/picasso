@@ -65,7 +65,7 @@ beta = c(rep(sqrt(1/3),3),rep(0,d-3))
 Y.fit = exp(X.fit\%*\%beta)/(1+exp(X.fit\%*\%beta))
 
 ## Regression with "l1".
-out=picasso.logit(X=X.fit,Y=Y.fit,lambda=lambda)
+out=picasso(X=X.fit,Y=Y.fit,lambda=lambda,family="logit")
 
 ## Display results
 p=predict(out,X.pred)
@@ -74,5 +74,5 @@ p=predict(out,X.pred)
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
-\code{\link{picasso.logit}} and \code{\link{picasso-package}}.
+\code{\link{picasso}} and \code{\link{picasso-package}}.
 }
