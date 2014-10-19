@@ -43,6 +43,7 @@ picasso.scio <- function(X,
   maxdf = max(n,d)
   est = list()
   est$cov.input = isSymmetric(X)
+  correlation = FALSE
   if(est$cov.input)
   {
     if(verbose) {
@@ -57,7 +58,6 @@ picasso.scio <- function(X,
     else
       S = X
   }
-  correlation = FALSE
   if(!est$cov.input)
   {
     if(standardize)

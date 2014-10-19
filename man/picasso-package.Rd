@@ -11,8 +11,8 @@ Provides the implementation of a new family of efficient algorithms, called Path
 \tabular{ll}{
 Package: \tab picasso\cr
 Type: \tab Package\cr
-Version: \tab 0.2.0\cr
-Date: \tab 2014-10-05\cr
+Version: \tab 0.3.0\cr
+Date: \tab 2014-10-18\cr
 License: \tab GPL-2\cr
 }
 }

@@ -1,4 +1,4 @@
-7a3ded23abc695b8778a9fb3e9167b8e *DESCRIPTION
+21ff21acd4ad3133781ea22bc6db1d70 *DESCRIPTION
 e010462b841f05976de364d3dda6207f *NAMESPACE
 16388b8e1fd7a01a5e2579c2265ed93c *R/glasso.R
 27cf8e68ecfe8a090dfd537d08773eff *R/lasso.R
@@ -9,7 +9,7 @@ b284872ef824cacf23b2a68ca0d0c73d *R/picasso.R
 d5fb04424c9bfeac33261ca2029d225d *R/picasso.lasso.R
 52030b2dc3c6ba591ed1061dc24ec25b *R/picasso.logit.R
 8e0afd5a8ae2da80b4925936c737ce26 *R/picasso.mvr.R
-adf3f6b5728fbab005cef6eb931a1493 *R/picasso.scio.R
+902a41a80a0efc4d4624a65247333805 *R/picasso.scio.R
 b02b0348129ad44eabc939732ac119b5 *R/scio.R
 50e7ce0893c625fc0115e6b5b27c9339 *R/scio.generator.R
 c25027bbaa425384eee656b1d03aea2a *R/scio.plot.R
@@ -18,7 +18,7 @@ c576332fdc932a03588c412855fbeea5 *data/eyedata.rda
 02445d6fce6aecfd0a8ea77f632e318c *man/coef.lasso.Rd
 ad1c2c6fe726f2acdc0993b3354e3f67 *man/coef.logit.Rd
 698333bcad84f3d2570bb08acd6b5f00 *man/eyedata.Rd
-58646dfce360651e0653ee62cf08b382 *man/picasso-package.Rd
+e98acd208ea0fe98e473ac5d3ce8aea1 *man/picasso-package.Rd
 30d6ffd5db49a4402caba4cf2fb6154c *man/picasso.Rd
 48a7ead012428c9644c38a59e4f9d69a *man/plot.lasso.Rd
 6ec43952f6c66d667231e2262ec2e666 *man/plot.logit.Rd
