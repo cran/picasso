@@ -30,6 +30,10 @@ void picasso_logit_cyclic(double *Y, double * X, double * beta, double * intcpt,
     double *grad = (double *) Calloc(d, double);
     start = clock();
     size_a = 0;
+    for(i=0;i<n;i++){
+        p[i] = 0;
+        Xb[i] = 0;
+    }
     
     for (i=0; i<nlambda; i++) {
         ilambda0 = lambda[i];
@@ -95,18 +99,12 @@ void picasso_logit_cyclic(double *Y, double * X, double * beta, double * intcpt,
             ite_cyc[i] += ite2;
             p_update(p,Xb,intcpt[i],n); // p[i] = 1/(1+exp(-intcpt-Xb[i]))
             dif_vec(p_Y, p, Y, n); // p_Y = p - Y
-            if(flag==1){
-                get_grad_logit_l1_vec(grad, p_Y, X, n, d); // grad = <p-Y, X>/n
-            }
-            if(flag==2){
-                get_grad_logit_mcp_vec(grad, p_Y, X, beta1, ilambda0, gamma, n, d); // grad = <p-Y, X>/n + h_grad(mcp)
-            }
-            if(flag==3){
-                get_grad_logit_scad_vec(grad, p_Y, X, beta1, ilambda0, gamma, n, d); // grad = <p-Y, X>/n + h_grad(scad)
-            }
-            dif1 = max_abs_vec(grad, d);
-            //dif1 = dif_2norm(beta1, beta2, set_act, size_a);
-            //vec_copy(beta1, beta2, set_act, size_a);
+            //if(flag==1) get_grad_logit_l1_vec(grad, p_Y, X, n, d); // grad = <p-Y, X>/n
+            //if(flag==2) get_grad_logit_mcp_vec(grad, p_Y, X, beta1, ilambda0, gamma, n, d); // grad = <p-Y, X>/n + h_grad(mcp)
+            //if(flag==3)get_grad_logit_scad_vec(grad, p_Y, X, beta1, ilambda0, gamma, n, d); // grad = <p-Y, X>/n + h_grad(scad)
+            //dif1 = max_abs_vec(grad, d);
+            dif1 = dif_2norm(beta1, beta2, set_act, size_a);
+            vec_copy(beta1, beta2, set_act, size_a);
             size_a1 = 0;
             for (k=0; k<size_a; k++) {
                 c_idx = set_act[k];

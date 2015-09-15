@@ -11,17 +11,21 @@ picasso.scio <- function(X,
                          lambda = NULL,
                          nlambda = NULL,
                          lambda.min.ratio = NULL,
+                         lambda.min = NULL,
                          method = "l1",
                          alg = "cyclic",
+                         opt = "naive",
                          gamma = 3,
                          sym = "or",
                          truncation = 0, 
+                         max.act.in = 3, 
                          prec = 1e-4,
-                         max.ite = 1e4,
+                         max.ite = 1e3,
                          standardize = FALSE,
                          perturb = TRUE,
                          verbose = TRUE)
 {
+  begt=Sys.time()
   n = nrow(X)
   d = ncol(X)
   if(verbose)
@@ -35,8 +39,8 @@ picasso.scio <- function(X,
         method,"does not exist. \n")
     return(NULL)
   }
-  if(alg!="cyclic" && alg!="greedy" && alg!="prox" && alg!="stoc"){
-    cat(" Wrong \"alg\" input. \n \"alg\" should be one of \"cyclic\", \"greedy\", \"prox\" and \"stoc\".\n", 
+  if(alg!="cyclic" && alg!="greedy" && alg!="proximal" && alg!="random" && alg!="hybrid"){
+    cat(" Wrong \"alg\" input. \n \"alg\" should be one of \"cyclic\", \"greedy\", \"proximal\", \"random\" and \"hybrid\".\n", 
         alg,"does not exist. \n")
     return(NULL)
   }
@@ -73,11 +77,16 @@ picasso.scio <- function(X,
   if(is.null(lambda))
   {
     if(is.null(nlambda))
-      nlambda = 10
-    if(is.null(lambda.min.ratio))
-      lambda.min.ratio = 0.4
+      nlambda = 100
     lambda.max = max(max(S-diag(d)),-min(S-diag(d)))
-    lambda.min = lambda.min.ratio*lambda.max
+    if(is.null(lambda.min)){
+      if(is.null(lambda.min.ratio)){
+        lambda.min = 0.05*lambda.max
+      }else{
+        lambda.min = min(lambda.min.ratio*lambda.max, lambda.max)
+      }
+    }
+    if(lambda.min>=lambda.max) cat("\"lambda.min\" is too small. \n")
     lambda = exp(seq(log(lambda.max), log(lambda.min), length = nlambda))
     rm(lambda.max,lambda.min,lambda.min.ratio)
     gc()
@@ -86,7 +95,6 @@ picasso.scio <- function(X,
   est$lambda = lambda
   est$nlambda = nlambda
   
-  begt=Sys.time()
   if (is.logical(perturb)) {
     if (perturb) { 
       perturb = 1/sqrt(n)
@@ -95,49 +103,27 @@ picasso.scio <- function(X,
     }
   }
   S = S + diag(d)*perturb
-  if(method == "l1"){
+  
+  if(method=="l1") {
     method.flag = 1
-    if(alg=="cyclic") 
-      out = scio.cyclic(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag, truncation)
-    if(alg=="greedy") 
-      out = scio.greedy(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
-    if(alg=="prox") 
-      out = scio.prox(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
-    if(alg=="stoc") 
-      out = scio.stoc(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
   }
-  if(method == "mcp"){
+  if(method=="mcp") {
     method.flag = 2
     if (gamma<=1) {
-      cat("gamma > 1 is required for MCP. Set to default value 3. \n")
+      cat("gamma > 1 is required for MCP. Set to the default value 3. \n")
       gamma = 3
     }
-    if(alg=="cyclic") 
-      out = scio.cyclic(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag, truncation)
-    if(alg=="greedy") 
-      out = scio.greedy(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
-    if(alg=="prox") 
-      out = scio.prox(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
-    if(alg=="stoc") 
-      out = scio.stoc(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
   }
-  if(method == "scad"){
+  if(method=="scad") {
     method.flag = 3
     if (gamma<=2) {
-      cat("gamma > 2 is required for SCAD. Set to default value 3. \n")
+      cat("gamma > 2 is required for SCAD. Set to the default value 3. \n")
       gamma = 3
     }
-    if(alg=="cyclic") 
-      out = scio.cyclic(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag, truncation)
-    if(alg=="greedy") 
-      out = scio.greedy(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
-    if(alg=="prox") 
-      out = scio.prox(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
-    if(alg=="stoc") 
-      out = scio.stoc(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, method.flag)
   }
-  runt=Sys.time()-begt
-  est$runtime = runt
+  
+  out = scio.sc(S, lambda, nlambda, gamma, d, maxdf, prec, max.ite, verbose, alg, method.flag, max.act.in, truncation)
+  
   est$ite = out$ite
   
   for(j in 1:d) {
@@ -151,22 +137,15 @@ picasso.scio <- function(X,
   }
   G = new("dgCMatrix", Dim = as.integer(c(d*nlambda,d)), x = as.vector(out$x[1:out$col_cnz[d+1]]),
           p = as.integer(out$col_cnz), i = as.integer(out$row_idx[1:out$col_cnz[d+1]]))
-  est$x=out$x
-  est$row_idx=out$row_idx
-  est$col_cnz=out$col_cnz
+  
   est$beta = list()
   est$path = list()
-  est$path1 = list()
   est$df = matrix(0,d,nlambda)
-  est$rss = matrix(0,d,nlambda)  
-  est$sparsity = rep(0,nlambda)  
-  est$sparsity1 = rep(0,nlambda)  
+  est$sparsity = rep(0,nlambda) 
   for(i in 1:nlambda) {
     est$beta[[i]] = G[((i-1)*d+1):(i*d),]
     est$path[[i]] = abs(est$beta[[i]])
     est$df[,i] = apply(sign(est$path[[i]]),2,sum)
-    est$path1[[i]] = sign(est$path[[i]])
-    est$sparsity1[i] = sum(est$path1[[i]])/d/(d-1)
     
     if(sym == "or")
       est$path[[i]] = sign(est$path[[i]] + t(est$path[[i]]))
@@ -175,12 +154,11 @@ picasso.scio <- function(X,
     est$sparsity[i] = sum(est$path[[i]])/d/(d-1)
   }
   rm(G)
+  runt=Sys.time()-begt
+  est$runtime = runt
   est$obj = out$obj
   est$runt = out$runt
-  est$beta = out$icov
-  est$beta1 = out$icov1
   est$sigma = S
-  est$X = X
   est$method = method
   est$alg = alg
   est$gamma = gamma

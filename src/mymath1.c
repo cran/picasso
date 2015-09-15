@@ -32,6 +32,31 @@ double max_abs_vec(double * x, int n){
     return tmp;
 }
 
+double max_abs_vec_dif(double * x, double * y, int n){
+    int i;
+    double tmp = fabs(x[0]-y[0]);
+    
+    for(i=1; i<n ; i++){
+        tmp = max(tmp, fabs(x[i]-y[i]));
+    }
+    return tmp;
+}
+
+double max_abs_vec_dif_act(double * x, double * y, int * act_set, int n){
+    int i,idx;
+    double tmp;
+    if(n>0)
+        tmp = fabs(x[act_set[0]]-y[act_set[0]]);
+    else
+        tmp = 0;
+    
+    for(i=1; i<n ; i++){
+        idx = act_set[i];
+        tmp = max(tmp, fabs(x[idx]-y[idx]));
+    }
+    return tmp;
+}
+
 int max_abs_idx(double * x, int n){
     int i, idx;
     double tmp = fabs(x[0]);
@@ -44,6 +69,31 @@ int max_abs_idx(double * x, int n){
         }
     }
     return idx;
+}
+
+// find first max_act_in largest values and indexes
+void max_abs_kidx(double * x, int * idx, double * set, int n, int max_act_in){
+    int i, j, k;
+    
+    for(i=0; i<max_act_in; i++) {
+        idx[i] = 0;
+        set[i] = 0;
+    }
+    set[0] = fabs(x[0]);
+    
+    for(i=1; i<n; i++){
+        for(j=0; j<max_act_in; j++){
+            if(fabs(x[i])>set[j]){
+                for(k=max_act_in-1;k>j;k--){
+                    idx[k] = idx[k-1];
+                    set[k] = set[k-1];
+                }
+                idx[j] = i;
+                set[j] = fabs(x[i]);
+                break;
+            }
+        }
+    }
 }
 
 double max_vec(double * x, int n){
@@ -79,7 +129,7 @@ void max_norm2_gr(double *x, int *gr, int *gr_size, int gr_n, double *max_norm2,
 void max_selc(double *x, double vmax, double *x_s, int n, int *n_s, double z){
     int i,tmp;
     double thresh = vmax-z;
-
+    
     tmp = 0;
     for(i=0; i<n ; i++){
         if(x[i]>thresh){
@@ -88,6 +138,10 @@ void max_selc(double *x, double vmax, double *x_s, int n, int *n_s, double z){
         }
     }
     *n_s = tmp;
+}
+
+int min_int(int x, int y){
+    return (x < y) ? x : y;
 }
 
 double min(double x, double y){
@@ -154,6 +208,7 @@ void vec_mat_prod(double *x, double *y, double *z, int m, int n){
         }
     }
 }
+
 
 // x = dif*z^T y, y is n by m, z is n by d, x is m by d
 void vec_mat_prod_mvr(double *x, double *y, double *z, int m, int n, int d, double dif){
@@ -283,6 +338,19 @@ double dif_2norm(double *x, double *y, int *xa_idx, int n){
     return sqrt(norm2);
 }
 
+// ||x-y||_2
+double dif_2norm_dense(double *x, double *y, int n){
+    int i;
+    double tmp, norm2;
+    
+    norm2 = 0;
+    for (i=0; i<n; i++) {
+        tmp = x[i]-y[i];
+        norm2 += tmp*tmp;
+    }
+    return sqrt(norm2);
+}
+
 // ||x-y||_F
 double dif_Fnorm_mvr(double *x, double *y, int *gr_act, int gr_size_a, int d, int p){
     int i, j, idx;
@@ -322,6 +390,15 @@ void vec_copy(double *x, double *y, int *xa_idx, int n){
     for(i=0; i<n; i++){
         idx = xa_idx[i];
         y[idx] = x[idx];
+    }
+}
+
+// copy x to y
+void vec_copy_dense(double *x, double *y, int n){
+    int i;
+    
+    for(i=0; i<n; i++){
+        y[i] = x[i];
     }
 }
 
@@ -667,6 +744,16 @@ double soft_thresh_gr_scad(double y, double lamb, double beta, double gamma, dou
     }
 }
 
+// sum(x)
+double sum_vec(double *x, int n){
+    int i;
+    double tmp = 0;
+    
+    for (i=0; i<n; i++) {
+        tmp += x[i];
+    }
+    return tmp;
+}
 
 // sum(x-y)
 double sum_vec_dif(double *x, double *y, int n){
@@ -1221,8 +1308,8 @@ void rtfind_mvr(double rt_l, double rt_r, double *x, int c_col, int c_row, int d
 double l1norm(double * x, int n){
     int i;
     double tmp=0;
-
-    for(i=0; i<n; i++) 
+    
+    for(i=0; i<n; i++)
         tmp += fabs(x[i]);
     return tmp;
 }
@@ -1230,7 +1317,7 @@ double l1norm(double * x, int n){
 // v_out = |v_in|
 void fabs_vc(double *v_in, double *v_out, int n){
     int i;
-
+    
     for(i=0; i<n; i++)
         v_out[i] = fabs(v_in[i]);
 }
@@ -1238,7 +1325,7 @@ void fabs_vc(double *v_in, double *v_out, int n){
 void max_fabs_vc(double *v_in, double *v_out, double *vmax, int *n1, int n, double z){
     int i;
     double tmp, v_abs;
-
+    
     tmp = 0;
     for(i=0; i<n; i++){
         v_abs = fabs(v_in[i]);
@@ -1253,8 +1340,8 @@ void sort_up_bubble(double *v, int n){
     int i,j;
     double tmp;
     int ischanged;
-
-    for(i=n-1; i>=0; i--){ 
+    
+    for(i=n-1; i>=0; i--){
         ischanged = 0;
         for(j=0; j<i; j++){
             if(v[j]>v[j+1]){
@@ -1264,7 +1351,7 @@ void sort_up_bubble(double *v, int n){
                 ischanged = 1;
             }
         }
-        if(ischanged==0) 
+        if(ischanged==0)
             break;
     }
 }
@@ -1411,12 +1498,12 @@ void get_base(double *base, double *u, double *r, double *mmu, int *nn)
     int i,n;
     double mu,tmp;
     mu = *mmu;
-    n = *nn; 
+    n = *nn;
     tmp = 0;
     for(i=0;i<n;i++){
         tmp += u[i]*u[i];
     }
-
+    
     *base = 0;
     for(i=0;i<n;i++){
         *base += u[i]*r[i];
@@ -1455,7 +1542,7 @@ void get_dual_mat(double *u, double *r, double *mmu, int *nn, int *mm)
     n = *nn;
     m = *mm;
     zv = 1;
-
+    
     for(i=0;i<m;i++){
         tmp_sum = 0;
         for(j=0;j<n;j++){
@@ -1479,7 +1566,7 @@ void proj_mat_sparse(double *u, int *idx, int *size_u, double *lambda, int *nn, 
     m = *mm;
     zero = 0;
     size = 0;
-
+    
     for(i=0;i<n;i++){
         tmp_sum = 0;
         for(j=0;j<m;j++){
@@ -1509,7 +1596,7 @@ void get_grad_mat(double *g, double *A, double *u, int *dd, int *nn, int *mm)
     int i,j,k;
     int d,n,m;
     double tmp;
-
+    
     d = *dd;
     n = *nn;
     m = *mm;
@@ -1531,7 +1618,7 @@ void get_base_mat(double *base, double *fro, double *u, double *r, double *mmu, 
     int i,j,n,m;
     double mu,tmp1, tmp2;
     mu = *mmu;
-    n = *nn; 
+    n = *nn;
     m = *mm;
     tmp1 = 0;
     for(i=0;i<m;i++){
@@ -1767,4 +1854,624 @@ double l1norm_act(double *beta, int *set_act, int size_a){
         tmp += fabs(beta[set_act[i]]);
     }
     return tmp;
+}
+
+// smooth hinge loss y = sm_hinge(x)
+void smooth_svm(double * x, double * y, int n, double gamma){
+    int i;
+    
+    for (i=0; i<n; i++){
+        if(x[i]>=1) {
+            y[i] = 0;
+        }
+        else{
+            if(x[i]<=1-gamma){
+                y[i] = 1-x[i]-gamma/2;
+            }
+            else{
+                y[i] = pow(1-x[i],2)/(2*gamma);
+            }
+        }
+    }
+}
+
+// update X X^T
+void updateXX(double ** XX, int * XX_act_idx, double * X, int * set_actidx_all, int act_size_all, int n, int df)
+{
+    int i,idx,idx_k,act_x,k;
+    
+    idx_k = set_actidx_all[act_size_all];
+    k = XX_act_idx[idx_k];
+    for(i=0;i<act_size_all;i++){
+        idx = set_actidx_all[i];
+        act_x = XX_act_idx[idx];
+        XX[act_x][k] = vec_inprod(X+idx_k*n,X+idx*n,n);
+        XX[k][act_x] = XX[act_x][k];
+        //printf("act_x=%d %d,idx=%d,%f %f  ",act_x,i,idx,XX[act_x][k],XX[k][act_x]);
+    }
+    //printf("df=%d,idx_k=%d,k=%d  ",df,idx_k,k);
+    XX[df][k] = sum_vec(X+idx_k*n,n);
+    XX[k][df] = XX[df][k];
+    //*(*(XX+df)+k) = sum_vec(X+idx_k*n,n);
+    //*(*(XX+k)+df) = *(*(XX+df)+k);
+    //printf("%f %f  ",XX[df][k],XX[k][df]);
+}
+
+// covariance update for intcpt
+double cal_intcpt(double **XX, int * XX_act_idx, double xy, int * set_actidx, int act_size, double * beta, int coef_idx, double dbn){
+    int i,idx,act_x;
+    double tmp=0;
+    
+    for(i=0; i<act_size; i++){
+        idx = set_actidx[i];
+        act_x = XX_act_idx[idx];
+        tmp += beta[idx]*XX[coef_idx][act_x];
+    }
+    return (xy-tmp)/dbn;
+}
+
+// grad[] = grad[]-coef*XX[coef_idx][] on active set
+void grad_ud(double * grad, double ** XX, int * XX_act_idx, double coef, int * set_actidx, int act_size, int coef_idx)
+{
+    int i,idx,act_x;
+    for(i=0;i<act_size;i++){
+        idx = set_actidx[i];
+        act_x = XX_act_idx[idx];
+        //printf("grad[%d]=%f coef=%f,XX[%d][%d]=%f  ",idx,grad[idx],coef,coef_idx,act_x,XX[coef_idx][act_x]);
+        grad[idx] -= coef*XX[coef_idx][act_x];
+        //printf("grad2=%f \n",grad[idx]);
+    }
+}
+
+// res = Y-X*beta
+void res_ud(double * res, double * Y, double * X, double * beta, double intcpt, int * set_act, int act_size, int n)
+{
+    int i,j,idx;
+    
+    for(i=0;i<n;i++){
+        res[i] = Y[i] - intcpt;
+        for (j=0; j<act_size; j++) {
+            idx = set_act[j];
+            res[i] -= beta[idx]*X[idx*n+i];
+        }
+    }
+}
+
+void ud_act_cyclic(double *X, double *S, double *beta1, double *res, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int d, int n){
+    int j;
+    
+    for (j=0; j<d; j++) {
+        if (set_act1[j]==0) {
+            grad[j] = vec_inprod(res, X+j*n, n);
+            if(fabs(grad[j])>ilambda1){
+                if(flag==1) beta1[j] = soft_thresh_l1(grad[j]/S[j], ilambda/S[j]);
+                if(flag==2) beta1[j] = soft_thresh_mcp(grad[j]/S[j], ilambda/S[j], gamma);
+                if(flag==3) beta1[j] = soft_thresh_scad(grad[j]/S[j], ilambda/S[j], gamma);
+                if(beta1[j]!=0) {
+                    set_act1[j] = 1;
+                    dif_vec_vec(res, X+j*n, beta1[j], n); //res = res-beta1[j]*X[,j]
+                    (*act_in)++;
+                }
+            }
+        }
+    }
+}
+
+void ud_act_cyclic_cov(double *X, double **XX, int *XX_act_idx, int *set_actidx_all, double *S, double *beta1, double *res, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int *act_size_all, int df, int d4, int d, int n, int *err){
+    int j;
+    
+    for (j=0; j<d; j++) {
+        if (set_act1[j]==0) {
+            grad[j] = vec_inprod(res, X+j*n, n);
+            if(fabs(grad[j])>ilambda1){
+                if(flag==1) beta1[j] = soft_thresh_l1(grad[j]/S[j], ilambda/S[j]);
+                if(flag==2) beta1[j] = soft_thresh_mcp(grad[j]/S[j], ilambda/S[j], gamma);
+                if(flag==3) beta1[j] = soft_thresh_scad(grad[j]/S[j], ilambda/S[j], gamma);
+                if(beta1[j]!=0) {
+                    if(XX_act_idx[j]==d4){
+                        if(*act_size_all==df){
+                            *err = 2;
+                            //break;
+                        }
+                        if((*act_size_all)<df){
+                            set_act1[j] = 1;
+                            dif_vec_vec(res, X+j*n, beta1[j], n); //res = res-beta1[j]*X[,j]
+                            (*act_in)++;
+                            XX_act_idx[j] = *act_size_all;
+                            set_actidx_all[*act_size_all] = j;
+                            updateXX(XX,XX_act_idx,X,set_actidx_all,*act_size_all,n,df);
+                            XX[*act_size_all][*act_size_all] = S[j];
+                            (*act_size_all)++;
+                        }
+                    }
+                    else{
+                        set_act1[j] = 1;
+                        dif_vec_vec(res, X+j*n, beta1[j], n); //res = res-beta1[j]*X[,j]
+                        (*act_in)++;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void ud_act_cyclic_scio(double *S, double *beta1, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int d){
+    int j;
+    
+    for (j=0; j<d; j++) {
+        if (set_act1[j]==0) {
+            if(fabs(grad[j])>ilambda1){
+                if(flag==1) beta1[j] = soft_thresh_l1(grad[j]/S[j*d+j], ilambda/S[j*d+j]);
+                if(flag==2) beta1[j] = soft_thresh_mcp(grad[j]/S[j*d+j], ilambda/S[j*d+j], gamma);
+                if(flag==3) beta1[j] = soft_thresh_scad(grad[j]/S[j*d+j], ilambda/S[j*d+j], gamma);
+                if(beta1[j]!=0) {
+                    set_act1[j] = 1;
+                    (*act_in)++;
+                }
+            }
+        }
+    }
+}
+
+void ud_act_greedy(double *X, double *S, double *beta1, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double ilambda, int flag, int *act_in, int max_act_in, int d, int n){
+    int j,cur_idx;
+    
+    vec_mat_prod(grad, res, X, n, d); // grad = X^T res
+    //printf("3 %f,%f,%f,%f,%f,%f,%f \n",grad[0],grad[1],grad[2],grad[3],grad[4],grad[5],grad[6]);
+    max_abs_kidx(grad, idx, set, d, max_act_in);
+    for(j=0; j<max_act_in; j++){
+        cur_idx = idx[j];
+        if(set_act1[cur_idx] == 0) {
+            if(flag==1) beta1[cur_idx] = soft_thresh_l1(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx]);
+            if(flag==2) beta1[cur_idx] = soft_thresh_mcp(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx], gamma);
+            if(flag==3) beta1[cur_idx] = soft_thresh_scad(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx], gamma);
+            if(beta1[cur_idx]!=0) {
+                set_act1[cur_idx] = 1;
+                dif_vec_vec(res, X+cur_idx*n, beta1[cur_idx], n); //res = res-beta1[j]*X[,j]
+                (*act_in)++;
+            }
+        }
+    }
+}
+
+void ud_act_greedy_cov(double *X, double **XX, int *XX_act_idx, int *set_actidx_all, double *S, double *beta1, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double ilambda, int flag, int *act_in, int *act_size_all, int df, int d4, int max_act_in, int d, int n, int *err){
+    int j,cur_idx;
+    
+    vec_mat_prod(grad, res, X, n, d); // grad = X^T res
+    max_abs_kidx(grad, idx, set, d, max_act_in);
+    for(j=0; j<max_act_in; j++){
+        cur_idx = idx[j];
+        if(set_act1[cur_idx] == 0) {
+            if(flag==1) beta1[cur_idx] = soft_thresh_l1(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx]);
+            if(flag==2) beta1[cur_idx] = soft_thresh_mcp(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx], gamma);
+            if(flag==3) beta1[cur_idx] = soft_thresh_scad(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx], gamma);
+            if(beta1[cur_idx]!=0) {
+                if(XX_act_idx[cur_idx]==d4){
+                    if(*act_size_all==df){
+                        *err = 2;
+                        //break;
+                    }
+                    if((*act_size_all)<df){
+                        set_act1[cur_idx] = 1;
+                        dif_vec_vec(res, X+cur_idx*n, beta1[cur_idx], n); //res = res-beta1[j]*X[,j]
+                        (*act_in)++;
+                        XX_act_idx[cur_idx] = *act_size_all;
+                        set_actidx_all[*act_size_all] = cur_idx;
+                        updateXX(XX,XX_act_idx,X,set_actidx_all,*act_size_all,n,df);
+                        XX[*act_size_all][*act_size_all] = S[cur_idx];
+                        (*act_size_all)++;
+                    }
+                }
+                else{
+                    set_act1[cur_idx] = 1;
+                    dif_vec_vec(res, X+cur_idx*n, beta1[cur_idx], n); //res = res-beta1[j]*X[,j]
+                    (*act_in)++;
+                }
+            }
+        }
+    }
+}
+
+void ud_act_greedy_scio(double *S, double *beta1, int *idx, double *set, double *grad, int *set_act1, double gamma, double ilambda, int flag, int *act_in, int max_act_in, int d){
+    int j,cur_idx;
+    
+    //printf("3 %f,%f,%f,%f,%f,%f,%f \n",grad[0],grad[1],grad[2],grad[3],grad[4],grad[5],grad[6]);
+    max_abs_kidx(grad, idx, set, d, max_act_in);
+    for(j=0; j<max_act_in; j++){
+        cur_idx = idx[j];
+        if(set_act1[cur_idx] == 0) {
+            if(flag==1) beta1[cur_idx] = soft_thresh_l1(grad[cur_idx]/S[cur_idx*d+cur_idx], ilambda/S[cur_idx*d+cur_idx]);
+            if(flag==2) beta1[cur_idx] = soft_thresh_mcp(grad[cur_idx]/S[cur_idx*d+cur_idx], ilambda/S[cur_idx*d+cur_idx], gamma);
+            if(flag==3) beta1[cur_idx] = soft_thresh_scad(grad[cur_idx]/S[cur_idx*d+cur_idx], ilambda/S[cur_idx*d+cur_idx], gamma);
+            if(beta1[cur_idx]!=0) {
+                set_act1[cur_idx] = 1;
+                (*act_in)++;
+            }
+        }
+    }
+}
+
+void ud_act_prox(double *X, double *S, double *beta1, double *beta_tild, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double L, double ilambda, int flag, int *act_in, int max_act_in, int d, int n){
+    int j,k,m,tmp_idx;
+    
+    vec_mat_prod(grad, res, X, n, d); // grad = X^T res
+    if(flag==1){
+        prox_beta_est(beta_tild, beta1, grad, L, ilambda/L, d); // beta_tild = soft(beta1-grad/L, ilambda)
+    }
+    if(flag==2){
+        prox_beta_est_mcp(beta_tild, beta1, grad, L, ilambda/L, gamma, d); // beta_tild = soft(beta1-grad/L, ilambda)
+    }
+    if(flag==3){
+        prox_beta_est_scad(beta_tild, beta1, grad, L, ilambda/L, gamma, d); // beta_tild = soft(beta1-grad/L, ilambda)
+    }
+    for(j=0; j<max_act_in; j++) {
+        idx[j] = 0;
+        set[j] = 0;
+    }
+    for (j=0; j<d; j++) {
+        if (set_act1[j] == 0) {
+            for(k=0;k<max_act_in;k++){
+                if(fabs(beta_tild[j])>set[k]){
+                    for(m=max_act_in-1;m>k;m--){
+                        idx[m] = idx[m-1];
+                        set[m] = set[m-1];
+                    }
+                    idx[k] = j;
+                    set[k] = fabs(beta_tild[j]);
+                    break;
+                }
+            }
+        }
+    }
+    for(j=0;j<max_act_in;j++){
+        tmp_idx = idx[j];
+        if(set_act1[tmp_idx] == 0){
+            if(flag==1) beta1[tmp_idx] = soft_thresh_l1(grad[tmp_idx]/S[tmp_idx], ilambda/S[tmp_idx]);
+            if(flag==2) beta1[tmp_idx] = soft_thresh_mcp(grad[tmp_idx]/S[tmp_idx], ilambda/S[tmp_idx], gamma);
+            if(flag==3) beta1[tmp_idx] = soft_thresh_scad(grad[tmp_idx]/S[tmp_idx], ilambda/S[tmp_idx], gamma);
+            if(beta1[tmp_idx]!=0) {
+                set_act1[tmp_idx] = 1;
+                dif_vec_vec(res, X+tmp_idx*n, beta1[tmp_idx], n);
+                (*act_in)++;
+            }
+        }
+    }
+}
+
+void ud_act_prox_cov(double *X, double **XX, int *XX_act_idx, int *set_actidx_all, double *S, double *beta1, double *beta_tild, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double L, double ilambda, int flag, int *act_in, int *act_size_all, int df, int d4, int max_act_in, int d, int n, int *err){
+    int j,k,m,tmp_idx;
+    
+    vec_mat_prod(grad, res, X, n, d); // grad = X^T res
+    if(flag==1){
+        prox_beta_est(beta_tild, beta1, grad, L, ilambda/L, d); // beta_tild = soft(beta1-grad/L, ilambda)
+    }
+    if(flag==2){
+        prox_beta_est_mcp(beta_tild, beta1, grad, L, ilambda/L, gamma, d); // beta_tild = soft(beta1-grad/L, ilambda)
+    }
+    if(flag==3){
+        prox_beta_est_scad(beta_tild, beta1, grad, L, ilambda/L, gamma, d); // beta_tild = soft(beta1-grad/L, ilambda)
+    }
+    for(j=0; j<max_act_in; j++) {
+        idx[j] = 0;
+        set[j] = 0;
+    }
+    for (j=0; j<d; j++) {
+        if (set_act1[j] == 0) {
+            for(k=0;k<max_act_in;k++){
+                if(fabs(beta_tild[j])>set[k]){
+                    for(m=max_act_in-1;m>k;m--){
+                        idx[m] = idx[m-1];
+                        set[m] = set[m-1];
+                    }
+                    idx[k] = j;
+                    set[k] = fabs(beta_tild[j]);
+                    break;
+                }
+            }
+        }
+    }
+    for(j=0;j<max_act_in;j++){
+        tmp_idx = idx[j];
+        if(set_act1[tmp_idx] == 0){
+            if(flag==1) beta1[tmp_idx] = soft_thresh_l1(grad[tmp_idx]/S[tmp_idx], ilambda/S[tmp_idx]);
+            if(flag==2) beta1[tmp_idx] = soft_thresh_mcp(grad[tmp_idx]/S[tmp_idx], ilambda/S[tmp_idx], gamma);
+            if(flag==3) beta1[tmp_idx] = soft_thresh_scad(grad[tmp_idx]/S[tmp_idx], ilambda/S[tmp_idx], gamma);
+            if(beta1[tmp_idx]!=0) {
+                if(XX_act_idx[tmp_idx]==d4){
+                    if(*act_size_all==df){
+                        *err = 2;
+                        //break;
+                    }
+                    if((*act_size_all)<df){
+                        set_act1[tmp_idx] = 1;
+                        dif_vec_vec(res, X+tmp_idx*n, beta1[tmp_idx], n);
+                        (*act_in)++;
+                        XX_act_idx[tmp_idx] = *act_size_all;
+                        set_actidx_all[*act_size_all] = tmp_idx;
+                        updateXX(XX,XX_act_idx,X,set_actidx_all,*act_size_all,n,df);
+                        XX[*act_size_all][*act_size_all] = S[tmp_idx];
+                        (*act_size_all)++;
+                    }
+                }
+                else{
+                    set_act1[tmp_idx] = 1;
+                    dif_vec_vec(res, X+tmp_idx*n, beta1[tmp_idx], n);
+                    (*act_in)++;
+                }
+            }
+        }
+    }
+}
+
+void ud_act_prox_scio(double *S, double *beta1, double *beta_tild, int *idx, double *set, double *grad, int *set_act1, double gamma, double L, double ilambda, int flag, int *act_in, int max_act_in, int d){
+    int j,k,m,tmp_idx;
+    
+    if(flag==1){
+        prox_beta_est(beta_tild, beta1, grad, L, ilambda/L, d); // beta_tild = soft(beta1-grad/L, ilambda)
+    }
+    if(flag==2){
+        prox_beta_est_mcp(beta_tild, beta1, grad, L, ilambda/L, gamma, d); // beta_tild = soft(beta1-grad/L, ilambda)
+    }
+    if(flag==3){
+        prox_beta_est_scad(beta_tild, beta1, grad, L, ilambda/L, gamma, d); // beta_tild = soft(beta1-grad/L, ilambda)
+    }
+    for(j=0; j<max_act_in; j++) {
+        idx[j] = 0;
+        set[j] = 0;
+    }
+    for (j=0; j<d; j++) {
+        if (set_act1[j] == 0) {
+            for(k=0;k<max_act_in;k++){
+                if(fabs(beta_tild[j])>set[k]){
+                    for(m=max_act_in-1;m>k;m--){
+                        idx[m] = idx[m-1];
+                        set[m] = set[m-1];
+                    }
+                    idx[k] = j;
+                    set[k] = fabs(beta_tild[j]);
+                    break;
+                }
+            }
+        }
+    }
+    for(j=0;j<max_act_in;j++){
+        tmp_idx = idx[j];
+        if(set_act1[tmp_idx] == 0){
+            if(flag==1) beta1[tmp_idx] = soft_thresh_l1(grad[tmp_idx]/S[tmp_idx*d+tmp_idx], ilambda/S[tmp_idx*d+tmp_idx]);
+            if(flag==2) beta1[tmp_idx] = soft_thresh_mcp(grad[tmp_idx]/S[tmp_idx*d+tmp_idx], ilambda/S[tmp_idx*d+tmp_idx], gamma);
+            if(flag==3) beta1[tmp_idx] = soft_thresh_scad(grad[tmp_idx]/S[tmp_idx*d+tmp_idx], ilambda/S[tmp_idx*d+tmp_idx], gamma);
+            if(beta1[tmp_idx]!=0) {
+                set_act1[tmp_idx] = 1;
+                (*act_in)++;
+            }
+        }
+    }
+}
+
+void ud_act_stoc(double *X, double *S, double *beta1, double *res, double *grad, int *set_act1, int *set_idx, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int d, int n){
+    int j,j1;
+    
+    for (j1=0; j1<d; j1++) {
+        j = set_idx[j1];
+        if (set_act1[j]==0) {
+            grad[j] = vec_inprod(res, X+j*n, n);
+            if(fabs(grad[j])>ilambda1){
+                if(flag==1) beta1[j] = soft_thresh_l1(grad[j]/S[j], ilambda/S[j]);
+                if(flag==2) beta1[j] = soft_thresh_mcp(grad[j]/S[j], ilambda/S[j], gamma);
+                if(flag==3) beta1[j] = soft_thresh_scad(grad[j]/S[j], ilambda/S[j], gamma);
+                if(beta1[j]!=0) {
+                    set_act1[j] = 1;
+                    dif_vec_vec(res, X+j*n, beta1[j], n); //res = res-beta1[j]*X[,j]
+                    (*act_in)++;
+                }
+            }
+        }
+    }
+}
+
+void ud_act_stoc_cov(double *X, double **XX, int *XX_act_idx, int *set_actidx_all, double *S, double *beta1, double *res, double *grad, int *set_act1, int *set_idx, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int *act_size_all, int df, int d4, int d, int n, int *err){
+    int j,j1;
+    
+    for (j1=0; j1<d; j1++) {
+        j = set_idx[j1];
+        if (set_act1[j]==0) {
+            grad[j] = vec_inprod(res, X+j*n, n);
+            if(fabs(grad[j])>ilambda1){
+                if(flag==1) beta1[j] = soft_thresh_l1(grad[j]/S[j], ilambda/S[j]);
+                if(flag==2) beta1[j] = soft_thresh_mcp(grad[j]/S[j], ilambda/S[j], gamma);
+                if(flag==3) beta1[j] = soft_thresh_scad(grad[j]/S[j], ilambda/S[j], gamma);
+                if(beta1[j]!=0) {
+                    if(XX_act_idx[j]==d4){
+                        if(*act_size_all==df){
+                            *err = 2;
+                            //break;
+                        }
+                        if((*act_size_all)<df){
+                            set_act1[j] = 1;
+                            dif_vec_vec(res, X+j*n, beta1[j], n); //res = res-beta1[j]*X[,j]
+                            (*act_in)++;
+                            XX_act_idx[j] = *act_size_all;
+                            set_actidx_all[*act_size_all] = j;
+                            updateXX(XX,XX_act_idx,X,set_actidx_all,*act_size_all,n,df);
+                            XX[*act_size_all][*act_size_all] = S[j];
+                            (*act_size_all)++;
+                        }
+                    }
+                    else{
+                        set_act1[j] = 1;
+                        dif_vec_vec(res, X+j*n, beta1[j], n); //res = res-beta1[j]*X[,j]
+                        (*act_in)++;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void ud_act_stoc_scio(double *S, double *beta1, double *grad, int *set_act1, int *set_idx, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int d){
+    int j,j1;
+    
+    for (j1=0; j1<d; j1++) {
+        j = set_idx[j1];
+        if (set_act1[j]==0) {
+            if(fabs(grad[j])>ilambda1){
+                if(flag==1) beta1[j] = soft_thresh_l1(grad[j]/S[j*d+j], ilambda/S[j*d+j]);
+                if(flag==2) beta1[j] = soft_thresh_mcp(grad[j]/S[j*d+j], ilambda/S[j*d+j], gamma);
+                if(flag==3) beta1[j] = soft_thresh_scad(grad[j]/S[j*d+j], ilambda/S[j*d+j], gamma);
+                if(beta1[j]!=0) {
+                    set_act1[j] = 1;
+                    (*act_in)++;
+                }
+            }
+        }
+    }
+}
+
+void ud_act_hybrid(double *X, double *S, double *beta1, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int max_act_in, int hybrid, int d, int n){
+    int j,cur_idx;
+    
+    if(hybrid==1){ // cyclic update
+        for (j=0; j<d; j++) {
+            if (set_act1[j]==0) {
+                grad[j] = vec_inprod(res, X+j*n, n);
+                if(fabs(grad[j])>ilambda1){
+                    if(flag==1) beta1[j] = soft_thresh_l1(grad[j]/S[j], ilambda/S[j]);
+                    if(flag==2) beta1[j] = soft_thresh_mcp(grad[j]/S[j], ilambda/S[j], gamma);
+                    if(flag==3) beta1[j] = soft_thresh_scad(grad[j]/S[j], ilambda/S[j], gamma);
+                    if(beta1[j]!=0) {
+                        set_act1[j] = 1;
+                        dif_vec_vec(res, X+j*n, beta1[j], n); //res = res-beta1[j]*X[,j]
+                        (*act_in)++;
+                    }
+                }
+            }
+        }
+    }
+    if(hybrid==2){ // greedy update
+        vec_mat_prod(grad, res, X, n, d); // grad = X^T res
+        max_abs_kidx(grad, idx, set, d, max_act_in);
+        for(j=0; j<max_act_in; j++){
+            cur_idx = idx[j];
+            if(set_act1[cur_idx] == 0) {
+                if(flag==1) beta1[cur_idx] = soft_thresh_l1(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx]);
+                if(flag==2) beta1[cur_idx] = soft_thresh_mcp(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx], gamma);
+                if(flag==3) beta1[cur_idx] = soft_thresh_scad(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx], gamma);
+                if(beta1[cur_idx]!=0) {
+                    dif_vec_vec(res, X+cur_idx*n, beta1[cur_idx], n); //res = res-beta1[j]*X[,j]
+                    (*act_in)++;
+                    set_act1[cur_idx] = 1;
+                }
+            }
+        }
+    }
+}
+
+void ud_act_hybrid_cov(double *X, double **XX, int *XX_act_idx, int *set_actidx_all, double *S, double *beta1, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int *act_size_all, int df, int d4, int max_act_in, int hybrid, int d, int n, int *err){
+    int j,cur_idx;
+    
+    if(hybrid==1){ // cyclic update
+        for (j=0; j<d; j++) {
+            if (set_act1[j]==0) {
+                grad[j] = vec_inprod(res, X+j*n, n);
+                if(fabs(grad[j])>ilambda1){
+                    if(flag==1) beta1[j] = soft_thresh_l1(grad[j]/S[j], ilambda/S[j]);
+                    if(flag==2) beta1[j] = soft_thresh_mcp(grad[j]/S[j], ilambda/S[j], gamma);
+                    if(flag==3) beta1[j] = soft_thresh_scad(grad[j]/S[j], ilambda/S[j], gamma);
+                    if(beta1[j]!=0) {
+                        if(XX_act_idx[j]==d4){
+                            if(*act_size_all==df){
+                                *err = 2;
+                                //break;
+                            }
+                            if((*act_size_all)<df){
+                                set_act1[j] = 1;
+                                dif_vec_vec(res, X+j*n, beta1[j], n); //res = res-beta1[j]*X[,j]
+                                (*act_in)++;
+                                XX_act_idx[j] = *act_size_all;
+                                set_actidx_all[*act_size_all] = j;
+                                updateXX(XX,XX_act_idx,X,set_actidx_all,*act_size_all,n,df);
+                                XX[*act_size_all][*act_size_all] = S[j];
+                                (*act_size_all)++;
+                            }
+                        }
+                        else{
+                            set_act1[j] = 1;
+                            dif_vec_vec(res, X+j*n, beta1[j], n); //res = res-beta1[j]*X[,j]
+                            (*act_in)++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if(hybrid==2){ // greedy update
+        vec_mat_prod(grad, res, X, n, d); // grad = X^T res
+        max_abs_kidx(grad, idx, set, d, max_act_in);
+        for(j=0; j<max_act_in; j++){
+            cur_idx = idx[j];
+            if(set_act1[cur_idx] == 0) {
+                if(flag==1) beta1[cur_idx] = soft_thresh_l1(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx]);
+                if(flag==2) beta1[cur_idx] = soft_thresh_mcp(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx], gamma);
+                if(flag==3) beta1[cur_idx] = soft_thresh_scad(grad[cur_idx]/S[cur_idx], ilambda/S[cur_idx], gamma);
+                if(beta1[cur_idx]!=0) {
+                    if(XX_act_idx[cur_idx]==d4){
+                        if(*act_size_all==df){
+                            *err = 2;
+                            //break;
+                        }
+                        if((*act_size_all)<df){
+                            set_act1[cur_idx] = 1;
+                            dif_vec_vec(res, X+cur_idx*n, beta1[cur_idx], n); //res = res-beta1[j]*X[,j]
+                            (*act_in)++;
+                            XX_act_idx[cur_idx] = *act_size_all;
+                            set_actidx_all[*act_size_all] = cur_idx;
+                            updateXX(XX,XX_act_idx,X,set_actidx_all,*act_size_all,n,df);
+                            XX[*act_size_all][*act_size_all] = S[cur_idx];
+                            (*act_size_all)++;
+                        }
+                    }
+                    else{
+                        set_act1[cur_idx] = 1;
+                        dif_vec_vec(res, X+cur_idx*n, beta1[cur_idx], n); //res = res-beta1[j]*X[,j]
+                        (*act_in)++;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void ud_act_hybrid_scio(double *S, double *beta1, int *idx, double *set, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int max_act_in, int hybrid, int d){
+    int j,cur_idx;
+    
+    if(hybrid==1){ // cyclic update
+        for (j=0; j<d; j++) {
+            if (set_act1[j]==0) {
+                if(fabs(grad[j])>ilambda1){
+                    if(flag==1) beta1[j] = soft_thresh_l1(grad[j]/S[j*d+j], ilambda/S[j*d+j]);
+                    if(flag==2) beta1[j] = soft_thresh_mcp(grad[j]/S[j*d+j], ilambda/S[j*d+j], gamma);
+                    if(flag==3) beta1[j] = soft_thresh_scad(grad[j]/S[j*d+j], ilambda/S[j*d+j], gamma);
+                    if(beta1[j]!=0) {
+                        set_act1[j] = 1;
+                        (*act_in)++;
+                    }
+                }
+            }
+        }
+    }
+    if(hybrid==2){ // greedy update
+        max_abs_kidx(grad, idx, set, d, max_act_in);
+        for(j=0; j<max_act_in; j++){
+            cur_idx = idx[j];
+            if(set_act1[cur_idx] == 0) {
+                if(flag==1) beta1[cur_idx] = soft_thresh_l1(grad[cur_idx]/S[cur_idx*d+cur_idx], ilambda/S[cur_idx*d+cur_idx]);
+                if(flag==2) beta1[cur_idx] = soft_thresh_mcp(grad[cur_idx]/S[cur_idx*d+cur_idx], ilambda/S[cur_idx*d+cur_idx], gamma);
+                if(flag==3) beta1[cur_idx] = soft_thresh_scad(grad[cur_idx]/S[cur_idx*d+cur_idx], ilambda/S[cur_idx*d+cur_idx], gamma);
+                if(beta1[cur_idx]!=0) {
+                    set_act1[cur_idx] = 1;
+                    (*act_in)++;
+                }
+            }
+        }
+    }
 }

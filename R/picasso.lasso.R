@@ -3,8 +3,8 @@
 # picasso.lasso(): The user interface for lasso()                                  #
 # Author: Xingguo Li                                                               #
 # Email: <xingguo.leo@gmail.com>                                                   #
-# Date: Jul 5th, 2014                                                              #
-# Version: 0.1.0                                                                   #
+# Date: Sep 1st, 2015                                                              #
+# Version: 0.4.5                                                                   #
 #----------------------------------------------------------------------------------#
 
 picasso.lasso <- function(X, 
@@ -12,20 +12,20 @@ picasso.lasso <- function(X,
                           lambda = NULL,
                           nlambda = NULL,
                           lambda.min.ratio = NULL,
+                          lambda.min = NULL,
                           method="l1",
-                          alg = "cyclic",
+                          alg = "greedy",
+                          opt = "naive",
                           gamma = 3,
-                          design.sd = TRUE,
-                          res.sd = FALSE,
-                          gr = NULL,
-                          gr.d = NULL,
-                          gr.size = NULL,
+                          df = NULL,
+                          standardize = TRUE,
                           max.act.in = 3, 
                           truncation = 0, 
                           prec = 1e-4,
                           max.ite = 1e4,
                           verbose = TRUE)
 {
+  begt=Sys.time()
   n = nrow(X)
   d = ncol(X)
   if(verbose)
@@ -39,17 +39,27 @@ picasso.lasso <- function(X,
         method,"does not exist. \n")
     return(NULL)
   }
-  if(alg!="cyclic" && alg!="greedy" && alg!="prox" && alg!="stoc"){
-    cat(" Wrong \"alg\" input. \n \"alg\" should be one of \"cyclic\", \"greedy\", \"prox\" and \"stoc\".\n", 
+  if(alg!="cyclic" && alg!="greedy" && alg!="proximal" && alg!="random" && alg!="hybrid"){
+    cat(" Wrong \"alg\" input. \n \"alg\" should be one of \"cyclic\", \"greedy\", \"proximal\", \"random\" and \"hybrid\".\n", 
         alg,"does not exist. \n")
     return(NULL)
   }
-  maxdf = max(n,d)
-  if(design.sd){
-    xm=matrix(rep(colMeans(X),n),nrow=n,ncol=d,byrow=T)
-    x1=X-xm
-    xinvc.vec=1/sqrt(colSums(x1^2)/(n-1))
-    xx=x1%*%diag(xinvc.vec)
+  if(opt!="naive" && opt!="cov"){
+    cat(" Wrong \"opt\" input. \n \"opt\" should be one of \"naive\" and \"cov\".\n", 
+        opt,"does not exist. \n")
+    return(NULL)
+  }
+  res.sd = FALSE
+  if(standardize){
+    xx = rep(0,n*d)
+    xm = rep(0,d)
+    xinvc.vec = rep(0,d)
+    str = .C("standardize_design", as.double(X), as.double(xx), as.double(xm), as.double(xinvc.vec), 
+             as.integer(n), as.integer(d), PACKAGE="picasso")
+    xx = matrix(unlist(str[2]),nrow=n,ncol=d,byrow=FALSE)
+    xm = matrix(unlist(str[3]),nrow=1)
+    xinvc.vec = unlist(str[4])
+    
     ym=mean(Y)
     y1=Y-ym
     if(res.sd == TRUE){
@@ -65,233 +75,96 @@ picasso.lasso <- function(X,
     xx = X
     yy = Y
   }
-  
-  if(method=="l1"||method=="mcp"||method=="scad") {
-    if(!is.null(lambda)) nlambda = length(lambda)
-    if(is.null(lambda)){
-      if(is.null(nlambda))
-        nlambda = 5
-      if(is.null(lambda.min.ratio)){
-        lambda.min.ratio = 0.25
-      }
-      lambda.max = max(abs(crossprod(xx,yy/n)))
-      lambda.min = lambda.min.ratio*lambda.max
-      lambda = exp(seq(log(lambda.max), log(lambda.min), length = nlambda))
-      rm(lambda.max,lambda.min,lambda.min.ratio)
-      gc()
-    }
+  if(is.null(df)) {
+    df = min(n,d)
+    if(df==n) df=2*n
+    else df=d
   }
-  begt=Sys.time()
-  if(method=="l1") {
-    method.flag = 1
-    if (alg=="cyclic")
-      out = lasso.cyclic(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
-    if (alg=="greedy")
-      out = lasso.greedy(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
-    if (alg=="prox")
-      out = lasso.prox(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
-    if (alg=="stoc")
-      out = lasso.stoc(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
-  }
-  if(method=="scad") {
-    method.flag = 3
-    if (gamma<=2) {
-      cat("gamma > 2 is required for SCAD. Set to default value 3. \n")
-      gamma = 3
-    }
-    if (alg=="cyclic")
-      out = lasso.cyclic(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
-    if (alg=="greedy")
-      out = lasso.greedy(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
-    if (alg=="prox")
-      out = lasso.prox(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
-    if (alg=="stoc")
-      out = lasso.stoc(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
-  }
-  if(method=="mcp") {
-    method.flag = 2
-    if (gamma<=1) {
-      cat("gamma > 1 is required for MCP. Set to default value 3. \n")
-      gamma = 3
-    }
-    if (alg=="cyclic")
-      out = lasso.cyclic(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
-    if (alg=="greedy")
-      out = lasso.greedy(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
-    if (alg=="prox")
-      out = lasso.prox(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag)
-    if (alg=="stoc")
-      out = lasso.stoc(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, method.flag, max.act.in, truncation)
-  }
-  if(method=="group"||method=="group.mcp"||method=="group.scad") {
-    if (is.null(gr)) {
-      gr = list()
-      if(is.null(gr.d)){
-        if(is.null(gr.size)){
-          gr.d = 2
-          gr.n = ceiling(d/gr.d)
-          gr.size = rep(gr.d,gr.n)
-          if(sum(gr.size)>d) gr.size[gr.n] = d - sum(gr.size[1:(gr.n-1)])
-        }else{
-          if(sum(gr.size)!=d) {
-            cat('Group size error... sum(gr.size) !=',d,'\n')
-            return(NULL)
-          }
-          gr.n = length(gr.size)
-        }
-      }else{
-        if(gr.d>d){
-          cat('Dimension of per group error... gr.d >',d,'\n')
-          return(NULL)
-        }
-        if(!is.null(gr.size))
-          cat('Group decided by gr.d \n')
-        gr.n = ceiling(d/gr.d)
-        gr.size = rep(gr.d,gr.n)
-        if(sum(gr.size)>d) gr.size[gr.n] = d - sum(gr.size[1:(gr.n-1)])
-      }
-      idx = 1
-      for(i in 1:gr.n){
-        gr[[i]] = c(idx:(idx+gr.size[i]-1))
-        idx = idx + gr.size[i]
-      }
-    }else{
-      if(is.null(gr.n)){
-        gr.n = length(gr)
-        if(is.null(gr.size)){
-          gr.size = rep(0,gr.n)
-          for(i in 1:gr.n){
-            gr.size[i] = length(gr[[i]])
-            if(max(gr[[i]])>d) {
-              max.idx = which(gr[[i]]==max(gr[[i]]))
-              cat('Group index error... gr[[',i,']][',max.idx,'] >',d,'\n')
-              return(NULL)
-            }
-          }
-        }else{
-          if(sum(gr.size)!=d) {
-            cat('Group size error... sum(gr.size) !=',d,'\n')
-            return(NULL)
-          }
-        }
-      }else{
-        if(gr.n != length(gr)){
-          gr.n = length(gr)
-          cat('Group size error... gr.n !=',gr.n,'. Set gr.n=length(gr) \n')
-        }
-        if(is.null(gr.size)){
-          gr.size = rep(1,gr.n)
-          idx = c(1:d)
-          for(i in 1:gr.n){
-            gr.size[i] = length(gr[[i]])
-            if(max(gr[[i]])>d) {
-              max.idx = which(gr[[i]]==max(gr[[i]]))
-              cat('Group index error... gr[[',i,']][',max.idx,'] >',d,'\n')
-              return(NULL)
-            }
-            idx[gr[[i]]] = 0
-          }
-          if(sum(idx)>0)
-            cat('Index ', which(idx==1),' not in the group \n')
-        }else{
-          if(sum(gr.size)!=d) {
-            cat('Group size error... sum(gr.size) !=',d,'\n')
-            return(NULL)
-          }
-        }
-      }
-    }
-    xx1 = xx
-    Uinv.list = vector("list", gr.n)
-    for(i in 1:gr.n){
-      #Uinv.list[[i]] = chol2inv(chol(chol(crossprod(X[,gr[[i]]])/n)))
-      Uinv.list[[i]] = solve(chol(crossprod(xx[,gr[[i]]])/n))
-      xx1[,gr[[i]]] = xx[,gr[[i]]]%*%Uinv.list[[i]]
-    }
-    if(!is.null(lambda)) nlambda = length(lambda)
-    if(is.null(lambda)){
-      if(is.null(nlambda))
-        nlambda = 5
-      if(is.null(lambda.min.ratio)){
-        lambda.min.ratio = 0.25
-      }
-      lambda.max = max(abs(crossprod(xx,yy/n)))
-      lambda.min = lambda.min.ratio*lambda.max
-      lambda = exp(seq(log(lambda.max), log(lambda.min), length = nlambda))
-      rm(lambda.max,lambda.min,lambda.min.ratio)
-      gc()
-    }
-    if (method=="group"){
-      method.flag = 1 # glasso
-      if (alg=="cyclic") 
-        out = group.cyclic.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag, max.act.in, truncation)
-      if (alg=="greedy") 
-        out = group.greedy.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag)
-      if (alg=="prox") 
-        out = group.prox.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag)
-      if (alg=="stoc") 
-        out = group.stoc.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag, max.act.in, truncation)
-    }
-    if (method=="group.mcp"){
-      method.flag = 2
-      if (alg=="cyclic") 
-        out = group.cyclic.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag, max.act.in, truncation)
-      if (alg=="greedy") 
-        out = group.greedy.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag)
-      if (alg=="prox") 
-        out = group.prox.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag)
-      if (alg=="stoc") 
-        out = group.stoc.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag, max.act.in, truncation)
-    }
-    if (method=="group.scad"){
-      method.flag = 3
-      if (alg=="cyclic") 
-        out = group.cyclic.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag, max.act.in, truncation)
-      if (alg=="greedy") 
-        out = group.greedy.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag)
-      if (alg=="prox") 
-        out = group.prox.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag)
-      if (alg=="stoc") 
-        out = group.stoc.orth(yy, xx1, gr, gr.n, gr.size, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, Uinv.list, method.flag, max.act.in, truncation)
-    }
-  }
-  runt=Sys.time()-begt
-  
-  df=rep(0,nlambda)
-  for(i in 1:nlambda)
-    df[i] = sum(out$beta[[i]]!=0)
   
   est = list()
-  intcpt=matrix(0,nrow=1,ncol=nlambda)
-  beta1=matrix(0,nrow=d,ncol=nlambda)
-  if(design.sd){
+  if(!is.null(lambda)) nlambda = length(lambda)
+  if(is.null(lambda)){
+    if(is.null(nlambda))
+      nlambda = 100
+    xy = crossprod(xx,yy)
+    lambda.max = max(abs(xy/n))
+    if(is.null(lambda.min)){
+      if(is.null(lambda.min.ratio)){
+        lambda.min = 0.05*lambda.max
+      }else{
+        lambda.min = min(lambda.min.ratio*lambda.max, lambda.max)
+      }
+    }
+    if(lambda.min>=lambda.max) cat("\"lambda.min\" is too small. \n")
+    lambda = exp(seq(log(lambda.max), log(lambda.min), length = nlambda))
+    xy[d+1]=sum(yy)
+    # rm(lambda.max,lambda.min,lambda.min.ratio)
+    # gc()
+  }
+  else{
+    xy = crossprod(xx,yy)
+    xy[d+1]=sum(yy)
+  }
+  if(method=="l1"||method=="mcp"||method=="scad") {
+    if(method=="l1") {
+      method.flag = 1
+    }
+    if(method=="mcp") {
+      method.flag = 2
+      if (gamma<=1) {
+        cat("gamma > 1 is required for MCP. Set to the default value 3. \n")
+        gamma = 3
+      }
+    }
+    if(method=="scad") {
+      method.flag = 3
+      if (gamma<=2) {
+        cat("gamma > 2 is required for SCAD. Set to the default value 3. \n")
+        gamma = 3
+      }
+    }
+    if(opt=="cov"){
+      out = lasso.sc.cov(yy, xx, xy, lambda, nlambda, gamma, n, d, df, max.ite, prec, verbose, 
+                         alg, method.flag, max.act.in, truncation)
+      if(out$err==1)
+        cat("Error! Parameters are too dense. Please choose larger \"lambda\". \n")
+      if(out$err==2){
+        cat("Warning! \"df\" may be too small. You may choose larger \"df\". \n")
+      }
+    }
+    if(opt=="naive"){
+      out = lasso.sc.naive(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, 
+                           alg, method.flag, max.act.in, truncation)
+      if(out$err==1)
+        cat("Parameters are too dense. Please choose larger lambdas. \n")
+    }
+  }
+  
+  est$beta = new("dgCMatrix", Dim = as.integer(c(d,nlambda)), x = as.vector(out$beta[1:out$col.cnz[nlambda+1]]), p=as.integer(out$col.cnz),i = as.integer(out$beta.idx[1:out$col.cnz[nlambda+1]]))
+  est$df=rep(0,nlambda)
+  for(i in 1:nlambda)
+    est$df[i] = out$col.cnz[i+1]-out$col.cnz[i]
+  est$intercept=matrix(0,nrow=1,ncol=nlambda)
+  if(standardize){
     for(k in 1:nlambda){
-      tmp.beta = out$beta[[k]]
-      beta1[,k]=xinvc.vec*tmp.beta*sdy
-      intcpt[k] = ym-as.numeric(xm[1,]%*%beta1[,k])+out$intcpt[k]*sdy
+      #est$beta[[k]] = G[((k-1)*d+1):(k*d)]
+      est$beta[,k]=xinvc.vec*est$beta[,k]*sdy
+      est$intercept[k] = ym-as.numeric(xm%*%est$beta[,k])+out$intcpt[k]*sdy
     }
   }else{
     for(k in 1:nlambda){
-      beta1[,k]=out$beta[[k]]
-      intcpt[k] = out$intcpt[k]
+      est$intercept[k] = out$intcpt[k]
     }
   }
-  
-  est$obj = out$obj
+  est$ite =out$ite
   est$runt = out$runt
-  est$gr.d = gr.d
-  est$gr.size = gr.size
-  est$beta = beta1
-  est$intercept = intcpt
-  est$Y = Y
-  est$X = X
+  
+  runt=Sys.time()-begt
   est$lambda = lambda
   est$nlambda = nlambda
   est$gamma = gamma
-  est$df = df
   est$method = method
   est$alg = alg
-  est$ite =out$ite
   est$verbose = verbose
   est$runtime = runt
   class(est) = "lasso"

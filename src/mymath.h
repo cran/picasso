@@ -10,6 +10,9 @@
 #include <R.h>
 #include "R_ext/BLAS.h"
 #include "R_ext/Lapack.h"
+#include "Rinternals.h"
+#include "R_ext/Rdynload.h"
+#include <R_ext/Applic.h>
 
 double sign(double x);
 
@@ -19,15 +22,24 @@ int max_idx(double * x, int n);
 
 double max_abs_vec(double * x, int n);
 
+double max_abs_vec_dif(double * x, double * y, int n);
+
+double max_abs_vec_dif_act(double * x, double * y, int * act_set, int n);
+
 double max_vec(double * x, int n);
 
 void max_norm2_gr(double *x, int *gr, int *gr_size, int gr_n, double *max_norm2, int *idx);
 
 int max_abs_idx(double * x, int n);
 
+// find first max_act_in largest values and indexes
+void max_abs_kidx(double * x, int * idx, double * set, int n, int max_act_in);
+
 void max_selc(double *x, double vmax, double *x_s, int n, int *n_s, double z);
 
 double min(double x,double y);
+
+int min_int(int x, int y);
 
 double mean(double *x, int n);
 
@@ -62,12 +74,16 @@ int is_match(int idx, int * vec, int n);
 
 double dif_2norm(double *x, double *y, int *xa_idx, int n);
 
+double dif_2norm_dense(double *x, double *y, int n);
+
 // ||x-y||_F
 double dif_Fnorm_mvr(double *x, double *y, int *gr_act, int gr_size_a, int d, int p);
 
 double dif_2norm_gr(double *x, double *y, int *gr, int *gr_size, int *gr_act, int gr_act_size);
 
 void vec_copy(double *x, double *y, int *xa_idx, int n);
+
+void vec_copy_dense(double *x, double *y, int n);
 
 void vec_copy_gr(double *x, double *y, int *gr, int *gr_size, int *gr_act, int gr_act_size);
 
@@ -133,6 +149,9 @@ double soft_thresh_gr_l1(double y, double lamb, double beta, double dbn1);
 double soft_thresh_gr_mcp(double y, double lamb, double beta, double gamma, double dbn1);
 
 double soft_thresh_gr_scad(double y, double lamb, double beta, double gamma, double dbn1);
+
+// sum(x)
+double sum_vec(double *x, int n);
 
 double sum_vec_dif(double *x, double *y, int n);
 
@@ -300,6 +319,50 @@ double l1norm_act(double *beta, int *set_act, int size_a);
 
 void proj_mat_sparse(double *u, int *idx, int *size_u, double *lambda, int *nn, int *mm);
 
+// smooth hinge loss y = sm_hinge(x)
+void smooth_svm(double * x, double * y, int n, double gamma);
+
+// update X X^T
+void updateXX(double ** XX, int * XX_act_idx, double * X, int * set_actidx_all, int act_size_all, int n, int df);
+
+// covariance update for intcpt
+double cal_intcpt(double **XX, int * XX_act_idx, double sumy, int * set_actidx, int act_size, double * beta, int df, double dbn);
+
+// grad[] = grad[]-coef*XX[coef_idx][] on active set
+void grad_ud(double * grad, double ** XX, int * XX_act_idx, double coef, int * set_actidx, int act_size, int coef_idx);
+
+// res = Y-X*beta
+void res_ud(double * res, double * Y, double * X, double * beta, double intcpt, int * set_act, int act_size, int n);
+
+void ud_act_cyclic(double *X, double *S, double *beta1, double *res, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int d, int n);
+
+void ud_act_cyclic_cov(double *X, double **XX, int *XX_act_idx, int *set_actidx_all, double *S, double *beta1, double *res, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int *act_size_all, int df, int d4, int d, int n, int *err);
+
+void ud_act_cyclic_scio(double *S, double *beta1, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int d);
+
+void ud_act_greedy(double *X, double *S, double *beta1, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double ilambda, int flag, int *act_in, int max_act_in, int d, int n);
+
+void ud_act_greedy_cov(double *X, double **XX, int *XX_act_idx, int *set_actidx_all, double *S, double *beta1, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double ilambda, int flag, int *act_in, int *act_size_all, int df, int d4, int max_act_in, int d, int n, int *err);
+
+void ud_act_greedy_scio(double *S, double *beta1, int *idx, double *set, double *grad, int *set_act1, double gamma, double ilambda, int flag, int *act_in, int max_act_in, int d);
+
+void ud_act_prox(double *X, double *S, double *beta1, double *beta_tild, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double L, double ilambda, int flag, int *act_in, int max_act_in, int d, int n);
+
+void ud_act_prox_cov(double *X, double **XX, int *XX_act_idx, int *set_actidx_all, double *S, double *beta1, double *beta_tild, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double L, double ilambda, int flag, int *act_in, int *act_size_all, int df, int d4, int max_act_in, int d, int n, int *err);
+
+void ud_act_prox_scio(double *S, double *beta1, double *beta_tild, int *idx, double *set, double *grad, int *set_act1, double gamma, double L, double ilambda, int flag, int *act_in, int max_act_in, int d);
+
+void ud_act_stoc(double *X, double *S, double *beta1, double *res, double *grad, int *set_act1, int *set_idx, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int d, int n);
+
+void ud_act_stoc_cov(double *X, double **XX, int *XX_act_idx, int *set_actidx_all, double *S, double *beta1, double *res, double *grad, int *set_act1, int *set_idx, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int *act_size_all, int df, int d4, int d, int n, int *err);
+
+void ud_act_stoc_scio(double *S, double *beta1, double *grad, int *set_act1, int *set_idx, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int d);
+
+void ud_act_hybrid(double *X, double *S, double *beta1, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int max_act_in, int hybrid, int d, int n);
+
+void ud_act_hybrid_cov(double *X, double **XX, int *XX_act_idx, int *set_actidx_all, double *S, double *beta1, int *idx, double *set, double *res, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int *act_size_all, int df, int d4, int max_act_in, int hybrid, int d, int n, int *err);
+
+void ud_act_hybrid_scio(double *S, double *beta1, int *idx, double *set, double *grad, int *set_act1, double gamma, double ilambda1, double ilambda, int flag, int *act_in, int max_act_in, int hybrid, int d);
 
 void dantzig_mfista_scr(double *b0, double *A0, double *b, double *A, int *idx_scr, int num_scr, int dim, double *beta, double mu, double *L, int *ite, int *ite2, int *ite3, double lambda, int max_ite, double prec, int intercept, int flag, int nlamb);
 

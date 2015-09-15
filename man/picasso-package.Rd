@@ -5,14 +5,14 @@
 picasso: Pathwise Calibrated Sparse Shooting Algorithm
 }
 \description{
-Provides the implementation of a new family of efficient algorithms, called PathwIse CalibrAted Sparse Shooting AlgOrithm (picasso), for a variety of sparse learning problems, including Sparse Linear Regression, Sparse Logistic Regression, Sparse Column Inverse Operator and Sparse Multivariate Regression. Different types of active set identification schemes are implemented, such as cyclic search, greedy search, stochastic search and proximal gradient search. Besides, the package provides the choices between convex (L1 norm) and non-convex (MCP and SCAD) regularizations. Moreover, group regularization, such as group Lasso, group MCP and group SCAD, are also implemented for Sparse Linear Regression, Sparse Logistic Regression and Sparse Multivariate Regression.
+This package implements the pathwise calibrated sparse shooting algorithm (PICASSO) for high dimensional regularized sparse linear regression, sparse logistic regression, and sparse undirected graphical model estimation. As a pathwise coordinate optimization algorithm, PICASSO exploits warm start initialization, active set updating, and strong rule for coordinate preselection to boost computation, and attains a linear convergence to a unique sparse local optimum with optimal statistical properties. Moreover, users can choose different regularizers, including L1, MCP, and SCAD regularizers. The computation is memory-optimized using the sparse matrix output.
 }
 \details{
 \tabular{ll}{
 Package: \tab picasso\cr
 Type: \tab Package\cr
-Version: \tab 0.3.0\cr
-Date: \tab 2014-10-18\cr
+Version: \tab 0.4.7\cr
+Date: \tab 2015-09-12\cr
 License: \tab GPL-2\cr
 }
 }
