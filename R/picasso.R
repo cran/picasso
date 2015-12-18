@@ -28,6 +28,11 @@ picasso <- function(X,
                     max.ite = 1e3,
                     verbose = TRUE)
 {
+  if(family!="gaussian" && family!="binomial" && family!="graph"){
+    cat(" Wrong \"family\" input. \n \"family\" should be one of \"gaussian\", \"binomial\" and \"graph\".\n", 
+        family,"does not exist. \n")
+    return(NULL)
+  }
   if(family=="gaussian"){
     if(is.matrix(Y)==FALSE) {
       Y = as.matrix(Y)

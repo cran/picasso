@@ -11,14 +11,14 @@ This package implements the pathwise calibrated sparse shooting algorithm (PICAS
 \tabular{ll}{
 Package: \tab picasso\cr
 Type: \tab Package\cr
-Version: \tab 0.4.7\cr
-Date: \tab 2015-09-12\cr
+Version: \tab 0.5.0\cr
+Date: \tab 2015-12-15\cr
 License: \tab GPL-2\cr
 }
 }
 
 \author{
-Xingguo Li, Tuo Zhao, and Han Liu \cr
+Xingguo Li, Tuo Zhao, Tong Zhang and Han Liu \cr
 Maintainer: Xingguo Li <xingguo.leo@gmail.com>
 }
 

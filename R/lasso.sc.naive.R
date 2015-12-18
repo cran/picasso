@@ -7,7 +7,7 @@
 # Version: 0.4.5                                                                   #
 #----------------------------------------------------------------------------------#
 
-lasso.sc.naive <- function(Y, X, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, 
+lasso.sc.naive <- function(Y, X, lambda, nlambda, gamma, n, d, df, max.ite, prec, verbose, 
                            alg, method.flag, max.act.in, truncation)
 {
   if(verbose==TRUE){
@@ -24,7 +24,7 @@ lasso.sc.naive <- function(Y, X, lambda, nlambda, gamma, n, d, max.ite, prec, ve
   if(alg=="random") alg.flag=4 
   if(alg=="hybrid") alg.flag=5
   L = d*n
-  maxdf = min(n,d)
+  maxdf = df
   S = colSums(X^2)
   beta = rep(0,maxdf*nlambda)
   beta.intcpt = rep(0,nlambda)

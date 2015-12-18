@@ -22,7 +22,7 @@ Plot sparsity level information and 3 typical sparse graphs from the graph path.
 }
 
 \author{
-Xingguo Li, Tuo Zhao and Han Liu \cr
+Xingguo Li, Tuo Zhao, Tong Zhang and Han Liu \cr
 Maintainer: Xingguo Li <xingguo.leo@gmail.com>
 }
 \seealso{

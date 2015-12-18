@@ -78,7 +78,7 @@ The adjacency matrix of true graph structure (in sparse matrix representation) f
 }
 
 \author{
-Xingguo Li, Tuo Zhao and Han Liu \cr
+Xingguo Li, Tuo Zhao, Tong Zhang and Han Liu \cr
 Maintainer: Xingguo Li <xingguo.leo@gmail.com>
 }
 

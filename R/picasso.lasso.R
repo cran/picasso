@@ -77,7 +77,7 @@ picasso.lasso <- function(X,
   }
   if(is.null(df)) {
     df = min(n,d)
-    if(df==n) df=2*n
+    if(df==n) df=1*n
     else df=d
   }
   
@@ -133,7 +133,7 @@ picasso.lasso <- function(X,
       }
     }
     if(opt=="naive"){
-      out = lasso.sc.naive(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose, 
+      out = lasso.sc.naive(yy, xx, lambda, nlambda, gamma, n, d, df, max.ite, prec, verbose, 
                            alg, method.flag, max.act.in, truncation)
       if(out$err==1)
         cat("Parameters are too dense. Please choose larger lambdas. \n")
