@@ -1,26 +1,26 @@
-\name{print.logit}
-\alias{print.logit}
+\name{print.poisson}
+\alias{print.poisson}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Print Function for an object with S3 class \code{"logit"}
+Print Function for an object with S3 class \code{poisson}
 }
 \description{
-Print a summary of the information about an object with S3 class \code{"logit"}.
+Print a summary of the information about an object with S3 class \code{"poisson"}.
 }
 \usage{
-\method{print}{logit}(x, ...)
+\method{print}{poisson}(x, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{x}{
-  An object with S3 class \code{"logit"}.
+  An object with S3 class \code{"poisson"}.
   }
   \item{\dots}{
   Arguments to be passed to methods.
   }
 }
 \details{
-This call simply outlines the options used for computing a logit object.
+This call simply outlines the options used for computing a sparse poisson regression object.
 }
 %\value{
 %}
