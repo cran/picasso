@@ -81,7 +81,7 @@ void picasso_gaussian_cov(double *Y, double * X, double * beta,
                 for (j = 0; j < d; j++){
                     beta_cached = beta1[j];
 
-                    coordinate_update(&beta1[j], gr[j], S[j], 
+                    coordinate_update_nonlinear(&beta1[j], gr[j], S[j], 
                                     standardized, lambda[i], gamma, flag);
 
                     if (fabs(beta1[j] - beta_cached) < 1e-6)
@@ -152,7 +152,7 @@ void picasso_gaussian_cov(double *Y, double * X, double * beta,
                     j = set_act[k];
                     
                     beta_cached = beta1[j];
-                    coordinate_update(&beta1[j], gr[j], S[j], 
+                    coordinate_update_nonlinear(&beta1[j], gr[j], S[j], 
                                 standardized, lambda[i], gamma, flag); 
                            
                     if (fabs(beta1[j]-beta_cached)< 1e-8)

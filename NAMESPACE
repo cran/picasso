@@ -1,5 +1,5 @@
-useDynLib("picasso")
-import("MASS","igraph","Matrix","lattice")
+useDynLib("picasso", .registration=TRUE)
+import("MASS","Matrix")
 export("picasso",
        "print.gaussian",
        "plot.gaussian",

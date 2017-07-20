@@ -3,25 +3,43 @@
 #define BIG_EXPONENT (690) 
 
 void coordinate_update(double * beta, double gr, double S, 
-                        int standardized, double lambda, double gamma, int flag){
+                        int standardized, double lambda){
     double tmp = 0;
     if (standardized)
         tmp = gr + *beta;
     else
         tmp = gr + (*beta) * S;
 
-    if (flag == 1)
+    *beta = soft_thresh_l1(tmp, lambda);
+
+
+    if (!standardized)
+        *beta = (*beta) / S;
+}
+
+void coordinate_update_nonlinear(double * beta, double gr, double S, 
+                        int standardized, double lambda, double gamma, int method_flag){
+    double tmp = 0;
+    if (standardized)
+        tmp = gr + *beta;
+    else
+        tmp = gr + (*beta) * S;
+
+    if (method_flag == 1)
         *beta = soft_thresh_l1(tmp, lambda);
-    if (flag == 2)
+    
+    if (method_flag == 2)
         *beta = soft_thresh_mcp(tmp, lambda, gamma);
-    if (flag == 3)
+
+    if (method_flag == 3)
         *beta = soft_thresh_scad(tmp, lambda, gamma);
 
     if (!standardized)
         *beta = (*beta) / S;
 }
 
-double truncate(double x, double a){
+
+double truncate_exponent(double x, double a){
     double t = fabs(x);
 
     if (t > a){
@@ -45,24 +63,25 @@ int min_int(int a, int b){
 double penalty_derivative(int method_flag, double x, double lambda, double gamma){
     // mcp
     if (method_flag == 2){
-        if (x > lambda * gamma){
+        if (fabs(x) > lambda * gamma){
             return(0);
-        } else{
-            return(1 - x/(lambda*gamma));
-        }
-    }
-    // scad
-    if (method_flag == 3){
-        if (x > lambda * gamma){
-            return(0);
-        } else if ( x > lambda){
-            return((lambda*gamma-x)/(gamma-1));
-        } else {
-            return(1.0);
+        } else  {
+            return(lambda - fabs(x)/gamma);
         }
     }
 
-    return(0);
+    // scad
+    if (method_flag == 3){
+        if (fabs(x) > lambda * gamma){
+            return(0);
+        } else if (fabs(x) > lambda){
+            return((lambda*gamma-fabs(x))/(gamma-1));
+        } else {
+            return(lambda);
+        }
+    }
+
+    return(lambda);
 }
 
 
@@ -106,7 +125,7 @@ double get_penalized_logistic_loss(int method_flag, double *p, double * Y, doubl
     }
     for (i = 0; i<n; i++)
     if (p[i] > 1e-8) {
-        v += (log(p[i]) - intcpt - Xb[i]);
+        v -= (log(p[i]) - intcpt - Xb[i]);
     }
 
     v = v/n;
@@ -254,7 +273,7 @@ void X_beta_update(double *Xb, const double *X, double beta, int n){
 void p_update(double *p, double *Xb, double intcpt, int n){
     int i;    
     for (i = 0; i < n; i++) {
-        p[i] = 1/(1+exp(truncate(-intcpt-Xb[i], BIG_EXPONENT)));
+        p[i] = 1/(1+exp(truncate_exponent(-intcpt-Xb[i], BIG_EXPONENT)));
         if (p[i] > 0.999) p[i] = 1;
         if (p[i] < 0.001) p[i] = 0;
     }
@@ -284,9 +303,11 @@ void standardize_design(double * X, double * xx, double * xm,
             xinvc[j] += xx[jn+i]*xx[jn+i];
         }
 
-        xinvc[j] = 1/sqrt(xinvc[j]/(n-1));
-        for (i = 0; i < n; i++) {
-            xx[jn+i] = xx[jn+i]*xinvc[j];
+        if (xinvc[j] > 0){
+           xinvc[j] = 1/sqrt(xinvc[j]/(n-1));
+            for (i = 0; i < n; i++) {
+                xx[jn+i] = xx[jn+i]*xinvc[j];
+            } 
         }
     }
 }

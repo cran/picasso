@@ -15,9 +15,12 @@
 #include <R_ext/Applic.h>
 
 void coordinate_update(double * beta, double gr, double S, 
-                        int standardized, double lambda, double gamma, int flag);
+                        int standardized, double lambda);
 
-double truncate(double x, double a);
+void coordinate_update_nonlinear(double * beta, double gr, double S, 
+                        int standardized, double lambda, double gamma, int method_flag);
+
+double truncate_exponent(double x, double a);
 
 int min_int(int a, int b);
 

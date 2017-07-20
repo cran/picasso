@@ -103,7 +103,6 @@ void picasso_gaussian_naive(double *Y, double * X, double * beta, double * intcp
             while (ite2 < max_ite2){
                 ite2 += 1;
                 terminate_loop = 0;
-
                 
                 for (j = 0; j < d; j++){
                     if (active_set[j] == 0)
@@ -111,7 +110,7 @@ void picasso_gaussian_naive(double *Y, double * X, double * beta, double * intcp
                     beta_cached = beta1[j];
                     // gr = <res, X[,j]> / n
                     gr = vec_inprod(res, X+j*n, n)/n;
-                    coordinate_update(&beta1[j], gr, S[j], 
+                    coordinate_update_nonlinear(&beta1[j], gr, S[j],
                         standardized, lambda[i], gamma, flag); 
                    
                     if (beta1[j] == beta_cached)
@@ -190,7 +189,7 @@ void picasso_gaussian_naive(double *Y, double * X, double * beta, double * intcp
                     
                     beta_cached = beta1[j];
                     gr = vec_inprod(res, X+j*n, n)/n;
-                    coordinate_update(&beta1[j], gr, S[j], standardized, lambda[i], gamma, flag); 
+                    coordinate_update_nonlinear(&beta1[j], gr, S[j], standardized, lambda[i], gamma, flag); 
                            
                     if (beta1[j] == beta_cached)
                         continue;

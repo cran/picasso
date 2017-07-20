@@ -54,7 +54,6 @@ void picasso_logit_solver(
     int method_flag = *fflag;
 
     double dev_null = 0.0;
-    double dev_sat = 0.0;
 
     double beta0_null = 0.0;
     double avr_y = 0.0;
@@ -65,8 +64,6 @@ void picasso_logit_solver(
     avr_y = avr_y / n;
     beta0_null = log(avr_y /(1-avr_y));
     dev_null = -(avr_y * beta0_null + log(1 - avr_y)); // dev_null > 0
-
-    dev_sat = dev_null; 
 
     int outer_loop_count;
     double dev_local;
@@ -95,7 +92,6 @@ void picasso_logit_solver(
     }
   
     double stage_intcpt;
-    double stage_intcpt_old;
     double intcpt_old; 
     
     double sum_w;
@@ -135,7 +131,7 @@ void picasso_logit_solver(
                 if (active_set[j] == 0){
                     if (gr[j] > 2*lambda[i] - lambda[i-1]) active_set[j] = 1;
                 }
-        } else if (i ==0){
+        } else if (i == 0){
             for (j = 0; j < d; j++)
                 if (active_set[j] == 0){
                     if (gr[j] > 2*lambda[i]) active_set[j] = 1;
@@ -152,7 +148,7 @@ void picasso_logit_solver(
             for (j = 0; j < d; j++)
            //     stage_lambda[j] = lambda[i] * 
             //                penalty_derivative(method_flag, fabs(beta1[j]), lambda[i], *ggamma); 
-                stage_lambda[j] = lambda[i];
+            stage_lambda[j] = lambda[i];
 
             function_value_old = get_penalized_logistic_loss(method_flag, p, Y, 
                                                 Xb, beta1, stage_intcpt, 
@@ -172,7 +168,6 @@ void picasso_logit_solver(
             for (j = 0; j < d; j++){
                 stage_beta_old[j] = beta1[j];
             }
-            stage_intcpt_old = stage_intcpt;
 
             outer_loop_count = 0;
             while (outer_loop_count < max_ite1) {
@@ -293,21 +288,16 @@ void picasso_logit_solver(
                                                 lambda[i], *ggamma);
 
             // only for R
-            if (verbose){
+            if (verbose && (stage_count > 1)){
                 Rprintf("Stage:%d, for lambda:%f, fvalue:%f, pre:%f\n", 
                     stage_count, lambda[i], function_value, function_value_old);
-            }
-
-            if (fabs(function_value- function_value_old) < 0.01 * fabs(function_value_old)){
-                break;
             }
 
             function_value_old = function_value;
 
             // update lambdas using the multistage convex relaxation scheme
             for (j = 0; j < d; j++){
-                stage_lambda[j] = lambda[i] * 
-                    penalty_derivative(method_flag, fabs(beta1[j]), lambda[i], *ggamma);
+                stage_lambda[j] = penalty_derivative(method_flag, beta1[j], lambda[i], *ggamma);
             }
         }           
         intcpt[i] = stage_intcpt;     
@@ -319,6 +309,7 @@ void picasso_logit_solver(
     Free(stage_beta_old);
     Free(set_act);
     Free(active_set);
+    Free(stage_lambda);
     Free(gr);
     Free(p);
     Free(Xb);
