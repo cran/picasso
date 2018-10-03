@@ -3,10 +3,10 @@ picasso.sqrtlasso <- function(X,
                           lambda = NULL,
                           nlambda = NULL,
                           lambda.min.ratio = NULL,
-                          lambda.min = NULL,
                           method="l1",
                           gamma = 3,
                           standardize = TRUE,
+                          intercept = TRUE,
                           prec = 1e-4,
                           max.ite = 1e4,
                           verbose = FALSE)
@@ -31,9 +31,9 @@ picasso.sqrtlasso <- function(X,
   }
 
   if (standardize){
-    xx = rep(0,n*d)
-    xm = rep(0,d)
-    xinvc.vec = rep(0,d)
+    xx = rep(0.0, n*d)
+    xm = rep(0.0, d)
+    xinvc.vec = rep(0.0, d)
     str = .C("standardize_design", as.double(X), as.double(xx), as.double(xm), as.double(xinvc.vec), 
              as.integer(n), as.integer(d), PACKAGE="picasso")
     xx = matrix(unlist(str[2]), nrow=n, ncol=d, byrow=FALSE)
@@ -53,12 +53,10 @@ picasso.sqrtlasso <- function(X,
     L0 = sqrt(sum(yy*yy)/n)
     lambda.max = max(abs(crossprod(xx,yy/n)))/L0
 
-    if (is.null(lambda.min)){
-      if (is.null(lambda.min.ratio)){
+    if (is.null(lambda.min.ratio)){
         lambda.min = 0.05*lambda.max
-      }else{
+    } else {
         lambda.min = min(lambda.min.ratio*lambda.max, lambda.max)
-      }
     }
 
     if (lambda.min >= lambda.max) 
@@ -85,7 +83,7 @@ picasso.sqrtlasso <- function(X,
     }
     
     out = sqrtlasso_solver(yy, xx, lambda, nlambda, gamma, 
-                n, d, max.ite, prec, verbose, 
+                n, d, max.ite, prec, intercept, verbose, 
                 method.flag)
   }
   
@@ -111,7 +109,6 @@ picasso.sqrtlasso <- function(X,
   }
 
   runt = Sys.time()-begt
-  est$obj = out$obj
   est$runt = out$runt
   est$beta = Matrix(beta1)
   res = X%*%beta1+matrix(rep(intcpt,n),nrow=n,byrow=TRUE)

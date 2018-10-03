@@ -3,10 +3,10 @@ picasso.poisson <- function(X,
                           lambda = NULL,
                           nlambda = NULL,
                           lambda.min.ratio = NULL,
-                          lambda.min = NULL,
                           method = "l1",
                           gamma = 3,
                           standardize = TRUE,
+                          intercept = FALSE,
                           prec = 1e-4,
                           max.ite = 1e4,
                           verbose = FALSE)
@@ -34,9 +34,9 @@ picasso.poisson <- function(X,
   }
 
   if (standardize){
-    xx = rep(0,n*d)
-    xm = rep(0,d)
-    xinvc.vec = rep(0,d)
+    xx = rep(0.0, n*d)
+    xm = rep(0.0, d)
+    xinvc.vec = rep(0.0, d)
     str = .C("standardize_design", as.double(X), as.double(xx), 
               as.double(xm), as.double(xinvc.vec), 
              as.integer(n), as.integer(d), PACKAGE="picasso")
@@ -58,13 +58,12 @@ picasso.poisson <- function(X,
 
     lambda.max = max(abs(crossprod(xx,(yy-avr_y)/n)))
 
-    if (is.null(lambda.min)){
-      if (is.null(lambda.min.ratio)){
+    if (is.null(lambda.min.ratio)){
         lambda.min = 0.05*lambda.max
-      } else {
+    } else {
         lambda.min = min(lambda.min.ratio*lambda.max, lambda.max)
-      }
     }
+
     if (lambda.min>=lambda.max) 
       cat("lambda.min is too small. \n")
     lambda = exp(seq(log(lambda.max), log(lambda.min), length = nlambda))
@@ -89,7 +88,7 @@ picasso.poisson <- function(X,
     }
     
     out = poisson_solver(yy, xx, lambda, nlambda, gamma, 
-                n, d, max.ite, prec, verbose, 
+                n, d, max.ite, prec, intercept = FALSE, verbose, 
                 method.flag)
   }
   
@@ -114,7 +113,6 @@ picasso.poisson <- function(X,
     }
   }
   runt = Sys.time()-begt
-  est$obj = out$obj
   est$runt = out$runt
   est$beta = Matrix(beta1)
   est$intercept = intcpt

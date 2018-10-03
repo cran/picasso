@@ -3,10 +3,10 @@ picasso.logit <- function(X,
                           lambda = NULL,
                           nlambda = NULL,
                           lambda.min.ratio = NULL,
-                          lambda.min = NULL,
                           method="l1",
                           gamma = 3,
                           standardize = TRUE,
+                          intercept = TRUE,
                           prec = 1e-4,
                           max.ite = 1e4,
                           verbose = FALSE)
@@ -37,10 +37,12 @@ picasso.logit <- function(X,
   }
 
   if (standardize){
-    xx = rep(0,n*d)
-    xm = rep(0,d)
-    xinvc.vec = rep(0,d)
-    str = .C("standardize_design", as.double(X), as.double(xx), as.double(xm), as.double(xinvc.vec), 
+    xx = rep(0.0, n*d)
+    xm = rep(0.0, d)
+    xinvc.vec = rep(0.0, d)
+    str = .C("standardize_design", 
+            as.double(X), as.double(xx), 
+            as.double(xm), as.double(xinvc.vec), 
              as.integer(n), as.integer(d), PACKAGE="picasso")
     xx = matrix(unlist(str[2]), nrow=n, ncol=d, byrow=FALSE)
     xm = matrix(unlist(str[3]), nrow=1)
@@ -58,12 +60,10 @@ picasso.logit <- function(X,
 
     lambda.max = max(abs(crossprod(xx,yy/n)))
 
-    if (is.null(lambda.min)){
-      if (is.null(lambda.min.ratio)){
+    if (is.null(lambda.min.ratio)){
         lambda.min = 0.05*lambda.max
-      }else{
+    } else {
         lambda.min = min(lambda.min.ratio*lambda.max, lambda.max)
-      }
     }
 
     if (lambda.min >= lambda.max) 
@@ -90,7 +90,7 @@ picasso.logit <- function(X,
     }
     
     out = logit_solver(yy, xx, lambda, nlambda, gamma, 
-                n, d, max.ite, prec, verbose, 
+                n, d, max.ite, prec, intercept, verbose, 
                 method.flag)
   }
   
@@ -116,7 +116,6 @@ picasso.logit <- function(X,
   }
 
   runt = Sys.time()-begt
-  est$obj = out$obj
   est$runt = out$runt
   est$beta = Matrix(beta1)
   res = X%*%beta1+matrix(rep(intcpt,n),nrow=n,byrow=TRUE)
