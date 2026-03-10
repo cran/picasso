@@ -11,8 +11,9 @@ picasso.poisson <- function(X,
                           max.ite = 1e4,
                           verbose = FALSE)
 {
-  n = nrow(X)
-  d = ncol(X)
+  dims = .picasso_validate_design(X)
+  n = dims$n
+  d = dims$d
   if (!isTRUE(all(Y == floor(Y))) || !isTRUE(all(Y >= 0))) 
     stop("The response must only contain non-negative integer values for poisson regression")
 
@@ -22,100 +23,37 @@ picasso.poisson <- function(X,
   begt = Sys.time()
   if (verbose)
     cat("Sparse poisson regression. \n")
-  if (n == 0 || d == 0) {
-    cat("No data input.\n")
-    return(NULL)
-  }
-  if (method != "l1" && method != "mcp" && method != "scad"){
-    cat(" Wrong \"method\" input. \n \"method\" 
-          should be one of \"l1\", \"mcp\", \"scad\".\n", 
-        method,"is not supported in this version. \n")
-    return(NULL)
-  }
 
-  if (standardize){
-    xx = rep(0.0, n*d)
-    xm = rep(0.0, d)
-    xinvc.vec = rep(0.0, d)
-    str = .C("standardize_design", as.double(X), as.double(xx), 
-              as.double(xm), as.double(xinvc.vec), 
-             as.integer(n), as.integer(d), PACKAGE="picasso")
-    xx = matrix(unlist(str[2]), nrow=n, ncol=d, byrow=FALSE)
-    xm = matrix(unlist(str[3]), nrow=1)
-    xinvc.vec = unlist(str[4])
-  } else {
-    xinvc.vec = rep(1,d)
-    xx = X
-  }
+  design = .picasso_prepare_design(X, standardize)
+  xx = design$xx
+  xm = design$xm
+  xinvc.vec = design$xinvc.vec
+
   yy = Y
   avr_y = mean(yy)
   
-  if (!is.null(lambda)) 
-    nlambda = length(lambda)
-  if (is.null(lambda)){
-    if (is.null(nlambda))
-      nlambda = 100
+  lambda.max = max(abs(crossprod(xx,(yy-avr_y)/n)))
+  lambda.info = .picasso_lambda_path(lambda, nlambda, lambda.min.ratio, lambda.max)
+  lambda = lambda.info$lambda
+  nlambda = lambda.info$nlambda
 
-    lambda.max = max(abs(crossprod(xx,(yy-avr_y)/n)))
-
-    if (is.null(lambda.min.ratio)){
-        lambda.min = 0.05*lambda.max
-    } else {
-        lambda.min = min(lambda.min.ratio*lambda.max, lambda.max)
-    }
-
-    if (lambda.min>=lambda.max) 
-      cat("lambda.min is too small. \n")
-    lambda = exp(seq(log(lambda.max), log(lambda.min), length = nlambda))
-  }
-  if (method == "l1" || method == "mcp" || method == "scad") {
-    if (method=="l1") {
-      method.flag = 1
-    }
-    if (method == "scad") {
-      method.flag = 3
-      if (gamma<=2) {
-        cat("gamma > 2 is required for SCAD. Set to default value 3. \n")
-        gamma = 3
-      }
-    }
-    if (method=="mcp") {
-      method.flag = 2
-      if (gamma<=1) {
-        cat("gamma > 1 is required for MCP. Set to default value 3. \n")
-        gamma = 3
-      }
-    }
-    
-    out = poisson_solver(yy, xx, lambda, nlambda, gamma, 
-                n, d, max.ite, prec, intercept = FALSE, verbose, 
-                method.flag)
-  }
+  method.info = .picasso_method_flag(method, gamma)
+  method.flag = method.info$flag
+  gamma = method.info$gamma
   
-  df = rep(0,nlambda)
-  for (i in 1:nlambda)
-    df[i] = sum(out$beta[[i]]!=0)
+  out = poisson_solver(yy, xx, lambda, nlambda, gamma, 
+              n, d, max.ite, prec, intercept = intercept, verbose, 
+              method.flag)
+  
+  df = vapply(out$beta, function(beta.k) sum(beta.k != 0), FUN.VALUE = integer(1))
   
   est = list()
-  intcpt = matrix(0, nrow=1, ncol=nlambda)
-  beta1 = matrix(0, nrow=d, ncol=nlambda)
-  
-  if (standardize==TRUE){
-    for (k in 1:nlambda){
-      tmp.beta = out$beta[[k]]
-      beta1[,k] = xinvc.vec*tmp.beta
-      intcpt[k] = -as.numeric(xm[1,]%*%beta1[,k])+out$intcpt[k]
-    }
-  } else {
-    for (k in 1:nlambda){
-      beta1[,k]=out$beta[[k]]
-      intcpt[k] = out$intcpt[k]
-    }
-  }
+  beta.raw = do.call(cbind, out$beta)
+  scaled = .picasso_rescale_solution(beta.raw, out$intcpt, standardize, xinvc.vec, xm)
   runt = Sys.time()-begt
   est$runt = out$runt
-  est$beta = Matrix(beta1)
-  est$intercept = intcpt
+  est$beta = Matrix(scaled$beta)
+  est$intercept = scaled$intercept
   est$lambda = lambda
   est$nlambda = nlambda
   est$df = df
@@ -130,79 +68,27 @@ picasso.poisson <- function(X,
 
 print.poisson <- function(x, ...)
 {  
-  cat("\n Poisson regression options summary: \n")
-  cat(x$nlambda, " lambdas used:\n")
-  print(signif(x$lambda,digits=3))
-  cat("Regularization =", x$method, "\n")
-  cat("Degree of freedom:",min(x$df),"----->",max(x$df),"\n")
-  if(units.difftime(x$runtime)=="secs") unit="secs"
-  if(units.difftime(x$runtime)=="mins") unit="mins"
-  if(units.difftime(x$runtime)=="hours") unit="hours"
-  cat("Runtime:",x$runtime," ",unit,"\n")
+  .picasso_print_summary(x, " Poisson regression options summary: ", method_label = "Regularization")
 }
 
 plot.poisson <- function(x, ...)
 {
-  matplot(x$lambda, t(x$beta), type="l", main="Regularization Path",
-          xlab="Regularization Parameter", ylab="Coefficient")
+  .picasso_plot_path(x)
 }
 
 coef.poisson <- function(object, lambda.idx = c(1:3), beta.idx = c(1:3), ...)
 {
-  lambda.n = length(lambda.idx)
-  beta.n = length(beta.idx)
-  cat("\n Values of estimated coefficients: \n")
-  cat(" index     ")
-  for (i in 1:lambda.n){
-    cat("",formatC(lambda.idx[i], digits=5, width=10),"")
-  }
-  cat("\n")
-  cat(" lambda    ")
-  for (i in 1:lambda.n){
-    cat("",formatC(object$lambda[lambda.idx[i]], digits=4, width=10),"")
-  }
-  cat("\n")
-  cat(" intercept ")
-  for (i in 1:lambda.n){
-    cat("",formatC(object$intercept[i], digits=4, width=10),"")
-  }
-  cat("\n")
-  for (i in 1:beta.n){
-    cat(" beta",formatC(beta.idx[i], digits=5, width=-5))
-    for (j in 1:lambda.n){
-      cat("",formatC(object$beta[beta.idx[i],lambda.idx[j]],digits=4,width=10),"")
-    }
-    cat("\n")
-  }
+  .picasso_extract_coef(object, lambda.idx, beta.idx)
 }
 
 predict.poisson <- function(object, newdata, lambda.idx = c(1:3), p.pred.idx = c(1:5), ...)
 {
-  pred.n = nrow(newdata)
-  lambda.n = length(lambda.idx)
-  p.pred.n = length(p.pred.idx)
-  intcpt = matrix(rep(object$intercept[lambda.idx],pred.n), nrow=pred.n,
-                  ncol=lambda.n, byrow=T)
-  res = newdata%*%object$beta[,lambda.idx] + intcpt
-
-  p.pred = res
-  cat("\n Values of predicted Poisson parameter: \n")
-  cat("   index   ")
-  for (i in 1:lambda.n){
-    cat("",formatC(lambda.idx[i], digits=5, width=10),"")
-  }
-  cat("\n")
-  cat("   lambda  ")
-  for (i in 1:lambda.n){
-    cat("",formatC(object$lambda[lambda.idx[i]], digits=4, width=10),"")
-  }
-  cat("\n")
-  for (i in 1:p.pred.n){
-    cat("    Y",formatC(p.pred.idx[i], digits=5, width=-5))
-    for (j in 1:lambda.n){
-      cat("",formatC(p.pred[p.pred.idx[i],j], digits=4, width=10),"")
-    }
-    cat("\n")
-  }
-  return(p.pred)
+  .picasso_predict(
+    object,
+    newdata,
+    lambda.idx,
+    p.pred.idx,
+    default_response_idx = c(1:5),
+    transform = exp
+  )
 }

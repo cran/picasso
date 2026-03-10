@@ -1,4 +1,3 @@
-#include <eigen3/Eigen/Dense>
 #include <picasso/actnewton.hpp>
 #include <picasso/objective.hpp>
 #include <picasso/solver_params.hpp>

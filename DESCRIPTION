@@ -1,15 +1,48 @@
 Package: picasso
 Type: Package
-Title: Pathwise Calibrated Sparse Shooting Algorithm
-Version: 1.3.1
-Date: 2019-02-10
-Author: Jason Ge, Xingguo Li, Haoming Jiang, Mengdi Wang, Tong Zhang, Han Liu and Tuo Zhao
-Maintainer: Jason Ge <jiange@princeton.edu>
+Title: Sparse Learning with Convex and Concave Penalties
+Version: 1.4.1
+Date: 2026-02-18
+Maintainer: Tuo Zhao <tourzhao@gatech.edu>
+Authors@R: c(
+ person("Jason", "Ge", role = "aut", email = "jiange@princeton.edu"),
+ person("Xingguo", "Li", role = "aut"),
+ person("Haoming", "Jiang", role = "aut"),
+ person("Mengdi", "Wang", role = "aut"),
+ person("Tong", "Zhang", role = "aut"),
+ person("Han", "Liu", role = "aut"),
+ person("Tuo", "Zhao", role = c("aut", "cre"), email = "tourzhao@gatech.edu"),
+ person("Gael", "Guennebaud", role = "ctb",
+        comment = "Contributor to bundled Eigen headers"),
+ person("Benoit", "Jacob", role = "ctb",
+        comment = "Contributor to bundled Eigen headers"),
+ person("Eigen", "Library Authors", role = "cph",
+        comment = "Copyright holders of bundled Eigen headers in src/include/eigen3")
+ )
 Depends: R (>= 2.15.0), MASS, Matrix
 Imports: methods
-Description: Computationally efficient tools for fitting generalized linear model with convex or non-convex penalty. Users can enjoy the superior statistical property of non-convex penalty such as SCAD and MCP which has significantly less estimation error and overfitting compared to convex penalty such as lasso and ridge. Computation is handled by multi-stage convex relaxation and the PathwIse CAlibrated Sparse Shooting algOrithm (PICASSO) which exploits warm start initialization, active set updating, and strong rule for coordinate preselection to boost computation, and attains a linear convergence to a unique sparse local optimum with optimal statistical properties. The computation is memory-optimized using the sparse matrix output.
+Description: Fast tools for fitting sparse generalized linear models with convex
+    penalties (lasso) and concave penalties (smoothly clipped absolute
+    deviation and minimax concave penalty). Computation uses multi-stage convex
+    relaxation and pathwise coordinate optimization with warm starts,
+    active-set updates, and screening rules. Core solvers are implemented in
+    C++, and coefficient paths are stored as sparse matrices for memory
+    efficiency.
 License: GPL-3
+Copyright: See inst/COPYRIGHTS for bundled third-party copyright and
+        license notices.
 Repository: CRAN
-Packaged: 2019-02-21 17:39:23 UTC; Jason
 NeedsCompilation: yes
-Date/Publication: 2019-02-21 21:20:18 UTC
+Packaged: 2026-03-05 23:57:02 UTC; tourzhao
+Author: Jason Ge [aut],
+  Xingguo Li [aut],
+  Haoming Jiang [aut],
+  Mengdi Wang [aut],
+  Tong Zhang [aut],
+  Han Liu [aut],
+  Tuo Zhao [aut, cre],
+  Gael Guennebaud [ctb] (Contributor to bundled Eigen headers),
+  Benoit Jacob [ctb] (Contributor to bundled Eigen headers),
+  Eigen Library Authors [cph] (Copyright holders of bundled Eigen headers
+    in src/include/eigen3)
+Date/Publication: 2026-03-10 12:00:02 UTC

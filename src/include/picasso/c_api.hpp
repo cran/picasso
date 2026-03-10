@@ -21,7 +21,7 @@ extern "C" void SolveLogisticRegression(
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
     // default settings
-    bool usePypthon = false
+    bool usePython = false
     );
 
 extern "C" void SolvePoissonRegression(
@@ -44,7 +44,7 @@ extern "C" void SolvePoissonRegression(
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
     // default settings
-    bool usePypthon = false
+    bool usePython = false
     );
 
 extern "C" void SolveSqrtLinearRegression(
@@ -67,7 +67,7 @@ extern "C" void SolveSqrtLinearRegression(
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
     // default settings
-    bool usePypthon = false
+    bool usePython = false
     );
 
 extern "C" void SolveLinearRegressionNaiveUpdate(
@@ -90,7 +90,7 @@ extern "C" void SolveLinearRegressionNaiveUpdate(
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
     // default settings
-    bool usePypthon = false
+    bool usePython = false
     );
 
 extern "C" void SolveLinearRegressionCovUpdate(
@@ -113,7 +113,7 @@ extern "C" void SolveLinearRegressionCovUpdate(
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
     // default settings
-    bool usePypthon = false
+    bool usePython = false
     );
 
 

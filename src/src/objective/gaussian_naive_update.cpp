@@ -3,8 +3,8 @@
 
 namespace picasso {
 GaussianNaiveUpdateObjective::GaussianNaiveUpdateObjective(
-    const double *xmat, const double *y, int n, int d, bool include_intercept, bool usePypthon)
-    : ObjFunction(xmat, y, n, d, usePypthon) {
+    const double *xmat, const double *y, int n, int d, bool include_intercept, bool usePython)
+    : ObjFunction(xmat, y, n, d, usePython) {
   XX.resize(d);
   r.resize(n);
 

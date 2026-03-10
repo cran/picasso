@@ -14,9 +14,7 @@ n, d, max.ite,
   beta.intcpt = rep(0.0, nlambda)
   size.act = rep(0, nlambda)
   ite.lamb = rep(0.0, nlambda)
-  ite.cyc = rep(0, nlambda)
   runt = matrix(0.0, 1, nlambda)
-  obj = matrix(0.0, 1, nlambda)
   str=.C("picasso_logit_solver", 
          as.double(Y), as.double(X), 
          as.integer(n), as.integer(d), 

@@ -7,9 +7,6 @@
 
 void picasso_actnewton_solver(
     picasso::ObjFunction *obj,
-    double *Y,       // input: 0/1 model response
-    double *X,       // input: model covariates
-    int n,           // input: number of samples
     int d,           // input: dimension
     double *lambda,  // input: regularization parameter
     int nlambda,     // input: number of lambda on the regularization path
@@ -62,9 +59,6 @@ void picasso_actnewton_solver(
 
 void picasso_actgd_solver(
     picasso::ObjFunction *obj,
-    double *Y,       // input: 0/1 model response
-    double *X,       // input: model covariates
-    int n,           // input: number of samples
     int d,           // input: dimension
     double *lambda,  // input: regularization parameter
     int nlambda,     // input: number of lambda on the regularization path
@@ -132,12 +126,11 @@ extern "C" void SolveLogisticRegression(
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
     // default settings
-    bool usePypthon
+    bool usePython
 ) {
-  picasso::ObjFunction *obj =
-      new picasso::LogisticObjective(X, Y, n, d, intercept, usePypthon);
-  picasso_actnewton_solver(obj, Y, X, n, d, lambda, nlambda, gamma, max_ite,
-                           pprec, reg_type, intercept, beta, intcpt, ite_lamb,
+  picasso::LogisticObjective obj(X, Y, n, d, intercept, usePython);
+  picasso_actnewton_solver(&obj, d, lambda, nlambda, gamma, max_ite, pprec,
+                           reg_type, intercept, beta, intcpt, ite_lamb,
                            size_act, runt);
 }
 
@@ -161,12 +154,11 @@ extern "C" void SolvePoissonRegression(
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
     // default settings
-    bool usePypthon
+    bool usePython
 ) {
-  picasso::ObjFunction *obj =
-      new picasso::PoissonObjective(X, Y, nn, dd, intercept, usePypthon);
-  picasso_actnewton_solver(obj, Y, X, nn, dd, lambda, nnlambda, gamma, mmax_ite,
-                           pprec, reg_type, intercept, beta, intcpt, ite_lamb,
+  picasso::PoissonObjective obj(X, Y, nn, dd, intercept, usePython);
+  picasso_actnewton_solver(&obj, dd, lambda, nnlambda, gamma, mmax_ite, pprec,
+                           reg_type, intercept, beta, intcpt, ite_lamb,
                            size_act, runt);
 }
 
@@ -190,13 +182,11 @@ extern "C" void SolveSqrtLinearRegression(
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
     // default settings
-    bool usePypthon
+    bool usePython
 ) {
-  picasso::ObjFunction *obj =
-      new picasso::SqrtMSEObjective(X, Y, nn, dd, intercept, usePypthon);
-
-  picasso_actnewton_solver(obj, Y, X, nn, dd, lambda, nnlambda, gamma, mmax_ite,
-                           pprec, reg_type, intercept, beta, intcpt, ite_lamb,
+  picasso::SqrtMSEObjective obj(X, Y, nn, dd, intercept, usePython);
+  picasso_actnewton_solver(&obj, dd, lambda, nnlambda, gamma, mmax_ite, pprec,
+                           reg_type, intercept, beta, intcpt, ite_lamb,
                            size_act, runt);
 }
 
@@ -220,13 +210,12 @@ extern "C" void SolveLinearRegressionNaiveUpdate(
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
     // default settings
-    bool usePypthon
+    bool usePython
 ) {
-  picasso::ObjFunction *obj =
-      new picasso::GaussianNaiveUpdateObjective(X, Y, nn, dd, intercept, usePypthon);
-  picasso_actgd_solver(obj, Y, X, nn, dd, lambda, nnlambda, gamma, mmax_ite,
-                       pprec, reg_type, intercept, beta, intcpt, ite_lamb,
-                       size_act, runt);
+  picasso::GaussianNaiveUpdateObjective obj(X, Y, nn, dd, intercept, usePython);
+  picasso_actgd_solver(&obj, dd, lambda, nnlambda, gamma, mmax_ite, pprec,
+                       reg_type, intercept, beta, intcpt, ite_lamb, size_act,
+                       runt);
 }
 
 extern "C" void SolveLinearRegressionCovUpdate(
@@ -249,11 +238,11 @@ extern "C" void SolveLinearRegressionCovUpdate(
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
     // default settings
-    bool usePypthon
+    bool usePython
 ) {
-  picasso::ObjFunction *obj =
-      new picasso::GaussianNaiveUpdateObjective(X, Y, nn, dd, intercept, usePypthon);
-  picasso_actgd_solver(obj, Y, X, nn, dd, lambda, nnlambda, gamma, mmax_ite,
-                       pprec, reg_type, intercept, beta, intcpt, ite_lamb,
-                       size_act, runt);
+  // Kept for backward compatibility: covariance mode currently reuses the
+  // same implementation as the naive Gaussian update.
+  SolveLinearRegressionNaiveUpdate(Y, X, nn, dd, lambda, nnlambda, gamma,
+                                   mmax_ite, pprec, reg_type, intercept, beta,
+                                   intcpt, ite_lamb, size_act, runt, usePython);
 }

@@ -1,10 +1,10 @@
 \name{plot.logit}
 \alias{plot.logit}
 \title{
-Plot Function for "logit"
+Plot Method for an Object with S3 Class \code{"logit"}
 }
 \description{
-Visualize the solution path of regression estimate corresponding to regularization paramters.
+Plot coefficient paths across regularization parameters.
 }
 \usage{
 \method{plot}{logit}(x, ...)
@@ -17,10 +17,13 @@ Visualize the solution path of regression estimate corresponding to regularizati
   Arguments to be passed to methods.
   }
 }
+\value{
+No return value, called for side effects (drawing the coefficient-path plot).
+}
 
 \author{
-Jason Ge, Xingguo Li, Mengdi Wang, Tong Zhang, Han Liu and Tuo Zhao\cr
-Maintainer: Jason Ge <jiange@princeton.edu>
+Jason Ge, Xingguo Li, Haoming Jiang, Mengdi Wang, Tong Zhang, Han Liu and Tuo Zhao\cr
+Maintainer: Tuo Zhao <tourzhao@gatech.edu>
 }
 
 \seealso{

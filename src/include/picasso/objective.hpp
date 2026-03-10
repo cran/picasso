@@ -2,7 +2,7 @@
 #define PICASSO_OBJECTIVE_H
 
 #include <cmath>
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 #include <vector>
 
 #include <ctime>
@@ -115,7 +115,7 @@ class ObjFunction {
 
  public:
   ObjFunction(const double *xmat, const double *y, int n, int d,
-              bool usePypthon = false)
+              bool usePython = false)
       : model_param(d) {
     this->d = d;
     this->n = n;
@@ -128,7 +128,7 @@ class ObjFunction {
     for (int i = 0; i < n; i++) Y[i] = y[i];
 
     X.resize(n, d);
-    if (!usePypthon)
+    if (!usePython)
       for (int j = 0; j < d; j++) {
         for (int i = 0; i < n; i++) X(i, j) = xmat[j * n + i];
       }
@@ -205,7 +205,7 @@ class GLMObjective : public ObjFunction {
 
  public:
   GLMObjective(const double *xmat, const double *y, int n, int d,
-               bool include_intercept = false, bool usePypthon = false);
+               bool include_intercept = false, bool usePython = false);
 
   double coordinate_descent(RegFunction *regfunc, int idx);
 
@@ -218,7 +218,7 @@ class GLMObjective : public ObjFunction {
 class LogisticObjective : public GLMObjective {
  public:
   LogisticObjective(const double *xmat, const double *y, int n, int d,
-                    bool include_intercept = false, bool usePypthon = false);
+                    bool include_intercept = false, bool usePython = false);
 
   void update_auxiliary();
 
@@ -228,7 +228,7 @@ class LogisticObjective : public GLMObjective {
 class PoissonObjective : public GLMObjective {
  public:
   PoissonObjective(const double *xmat, const double *y, int n, int d,
-                   bool include_intercept = false, bool usePypthon = false);
+                   bool include_intercept = false, bool usePython = false);
 
   void update_auxiliary();
 
@@ -248,7 +248,7 @@ class SqrtMSEObjective : public ObjFunction {
 
  public:
   SqrtMSEObjective(const double *xmat, const double *y, int n, int d,
-                   bool include_intercept = false, bool usePypthon = false);
+                   bool include_intercept = false, bool usePython = false);
 
   double coordinate_descent(RegFunction *regfunc, int idx);
 
@@ -269,7 +269,7 @@ class GaussianNaiveUpdateObjective: public ObjFunction {
  public:
   GaussianNaiveUpdateObjective(const double *xmat, const double *y, int n,
                                int d, bool include_intercept = false,
-                               bool usePypthon = false);
+                               bool usePython = false);
   double coordinate_descent(RegFunction *regfunc, int idx);
 
   void intercept_update();
