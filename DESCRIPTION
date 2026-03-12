@@ -1,7 +1,7 @@
 Package: picasso
 Type: Package
 Title: Sparse Learning with Convex and Concave Penalties
-Version: 1.4.1
+Version: 1.5
 Date: 2026-02-18
 Maintainer: Tuo Zhao <tourzhao@gatech.edu>
 Authors@R: c(
@@ -33,7 +33,7 @@ Copyright: See inst/COPYRIGHTS for bundled third-party copyright and
         license notices.
 Repository: CRAN
 NeedsCompilation: yes
-Packaged: 2026-03-05 23:57:02 UTC; tourzhao
+Packaged: 2026-03-11 03:50:51 UTC; tourzhao
 Author: Jason Ge [aut],
   Xingguo Li [aut],
   Haoming Jiang [aut],
@@ -45,4 +45,4 @@ Author: Jason Ge [aut],
   Benoit Jacob [ctb] (Contributor to bundled Eigen headers),
   Eigen Library Authors [cph] (Copyright holders of bundled Eigen headers
     in src/include/eigen3)
-Date/Publication: 2026-03-10 12:00:02 UTC
+Date/Publication: 2026-03-12 14:00:02 UTC

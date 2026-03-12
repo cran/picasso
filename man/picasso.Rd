@@ -15,8 +15,8 @@ MCP, or SCAD penalties.
 picasso(X, Y, lambda = NULL, nlambda = 100, lambda.min.ratio =
                  0.05, family = "gaussian", method = "l1",
                  type.gaussian = "naive", gamma = 3, df = NULL,
-                 standardize = TRUE, intercept = TRUE, prec = 1e-07,
-                 max.ite = 1000, verbose = FALSE)
+                 dfmax = NULL, standardize = TRUE, intercept = TRUE,
+                 prec = 1e-07, max.ite = 1000, verbose = FALSE)
 }
 
 \arguments{
@@ -60,9 +60,10 @@ picasso(X, Y, lambda = NULL, nlambda = 100, lambda.min.ratio =
   }
 
   \item{type.gaussian}{
-  Gaussian solver mode. Use \code{"naive"} for the current implementation.
-  \code{"covariance"} is accepted for backward compatibility and currently
-  maps to the same backend as \code{"naive"}. The default is \code{"naive"}.
+  Gaussian solver mode. \code{"naive"} maintains residuals and updates them
+  in O(n) per coordinate; \code{"covariance"} pre-computes the Gram matrix
+  and updates gradients in O(d) per coordinate, which is faster when
+  \eqn{n \gg d}. The default is \code{"naive"}.
   }
 
   \item{gamma}{
@@ -72,6 +73,16 @@ picasso(X, Y, lambda = NULL, nlambda = 100, lambda.min.ratio =
   \item{df}{
   Reserved for backward compatibility with older Gaussian covariance-update
   implementations. It is currently not used by the active solver backend.
+  }
+
+  \item{dfmax}{
+  Maximum number of nonzero coefficients for early stopping on the lambda
+  path. When the number of nonzero coefficients exceeds \code{dfmax}, the
+  solver stops and returns only the solutions computed so far. If
+  \code{NULL} (default), no limit is imposed. In addition to this
+  user-controlled limit, the solver automatically stops when the deviance
+  ratio exceeds 0.999 or the relative deviance change falls below 1e-5
+  (checked after at least 5 lambda values).
   }
 
   \item{standardize}{
@@ -176,8 +187,11 @@ Y = X\%*\%beta + noise
 ## l1 regularization solved with naive update
 fitted.l1.naive = picasso(X, Y, nlambda=100, type.gaussian="naive")
 
-## backward-compatible covariance alias (same backend as "naive")
+## covariance update (faster when n >> d)
 fitted.l1.covariance  = picasso(X, Y, nlambda=100, type.gaussian="covariance")
+
+## early stopping: stop when more than 10 nonzero coefficients
+fitted.l1.dfmax = picasso(X, Y, nlambda=100, dfmax=10)
 
 ## mcp regularization
 fitted.mcp = picasso(X, Y, nlambda=100, method="mcp")

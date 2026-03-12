@@ -34,13 +34,25 @@ class PicassoSolverParams {
   /*! whether or not to add intercept term */
   bool include_intercept;
 
+  /*! max number of nonzero coefficients for early stopping (-1 = no limit) */
+  int dfmax;
+
+  /*! max deviance ratio for early stopping (default 0.999) */
+  double dev_ratio_max;
+
+  /*! min relative deviance change for early stopping (default 1e-5) */
+  double dev_change_min;
+
+  /*! min number of lambdas before checking early stopping (default 5) */
+  int min_lambda_count;
+
   std::vector<double> lambdas;
 
   PicassoSolverParams();
 
   void set_lambdas(const double *lambda_path, int n);
 
-  std::vector<double> get_lambda_path() const;
+  const std::vector<double> &get_lambda_path() const;
 };
 
 }  // namespace solver

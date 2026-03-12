@@ -13,6 +13,7 @@ extern "C" void SolveLogisticRegression(
     double pprec,    // input: optimization precision
     int reg_type,    // input: type of regularization
     bool intercept,  // input: to have intercept term or not
+    int dfmax,       // input: max nonzero coefficients for early stopping (-1 = no limit)
     double *beta,    // output: an nlambda * d dim matrix
                      //         saving the coefficients for each lambda
     double *intcpt,  // output: an nlambda dim array
@@ -20,6 +21,7 @@ extern "C" void SolveLogisticRegression(
     int *ite_lamb,   // output: number of iterations for each lambda
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
+    int *num_fit,    // output: number of lambdas actually fit
     // default settings
     bool usePython = false
     );
@@ -36,6 +38,7 @@ extern "C" void SolvePoissonRegression(
     double pprec,    // input: optimization precision
     int reg_type,    // input: type of regularization
     bool intercept,  // input: to have intercept term or not
+    int dfmax,       // input: max nonzero coefficients for early stopping (-1 = no limit)
     double *beta,    // output: an nlambda * d dim matrix
                      //         saving the coefficients for each lambda
     double *intcpt,  // output: an nlambda dim array
@@ -43,6 +46,7 @@ extern "C" void SolvePoissonRegression(
     int *ite_lamb,   // output: number of iterations for each lambda
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
+    int *num_fit,    // output: number of lambdas actually fit
     // default settings
     bool usePython = false
     );
@@ -59,6 +63,7 @@ extern "C" void SolveSqrtLinearRegression(
     double pprec,    // input: optimization precision
     int reg_type,    // input: type of regularization
     bool intercept,  // input: to have intercept term or not
+    int dfmax,       // input: max nonzero coefficients for early stopping (-1 = no limit)
     double *beta,    // output: an nlambda * d dim matrix
                      //         saving the coefficients for each lambda
     double *intcpt,  // output: an nlambda dim array
@@ -66,6 +71,7 @@ extern "C" void SolveSqrtLinearRegression(
     int *ite_lamb,   // output: number of iterations for each lambda
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
+    int *num_fit,    // output: number of lambdas actually fit
     // default settings
     bool usePython = false
     );
@@ -82,6 +88,7 @@ extern "C" void SolveLinearRegressionNaiveUpdate(
     double pprec,    // input: optimization precision
     int reg_type,    // input: type of regularization
     bool intercept,  // input: to have intercept term or not
+    int dfmax,       // input: max nonzero coefficients for early stopping (-1 = no limit)
     double *beta,    // output: an nlambda * d dim matrix
                      //         saving the coefficients for each lambda
     double *intcpt,  // output: an nlambda dim array
@@ -89,6 +96,7 @@ extern "C" void SolveLinearRegressionNaiveUpdate(
     int *ite_lamb,   // output: number of iterations for each lambda
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
+    int *num_fit,    // output: number of lambdas actually fit
     // default settings
     bool usePython = false
     );
@@ -105,6 +113,7 @@ extern "C" void SolveLinearRegressionCovUpdate(
     double pprec,    // input: optimization precision
     int reg_type,    // input: type of regularization
     bool intercept,  // input: to have intercept term or not
+    int dfmax,       // input: max nonzero coefficients for early stopping (-1 = no limit)
     double *beta,    // output: an nlambda * d dim matrix
                      //         saving the coefficients for each lambda
     double *intcpt,  // output: an nlambda dim array
@@ -112,6 +121,7 @@ extern "C" void SolveLinearRegressionCovUpdate(
     int *ite_lamb,   // output: number of iterations for each lambda
     int *size_act,   // output: an array of solution sparsity (model df)
     double *runt,    // output: runtime
+    int *num_fit,    // output: number of lambdas actually fit
     // default settings
     bool usePython = false
     );

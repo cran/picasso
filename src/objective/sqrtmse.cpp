@@ -28,32 +28,32 @@ SqrtMSEObjective::SqrtMSEObjective(const double *xmat, const double *y, int n,
 double SqrtMSEObjective::coordinate_descent(RegFunction *regfunc, int idx) {
   g = 0.0;
   a = 0.0;
+  const auto xcol = X.col(idx);
 
-  double tmp;
+  double tmp0 = (xcol * xcol).sum();
+  double tmp1 = (r * xcol).sum();
+  double tmp2 = (xcol * xcol * r * r).sum();
 
-  sum_r2 = r.matrix().dot(r.matrix());
-  L = sqrt(sum_r2 / n);
+  a = (tmp0 / n - tmp2 / (n * sum_r2)) / L;
+  g = tmp1 / (n * L) + a * model_param.beta[idx];
 
-  Eigen::ArrayXd wXX  = (1 - r*r/sum_r2) * X.col(idx) * X.col(idx);
-  g = (wXX * model_param.beta[idx] + r * X.col(idx)).sum()/(n*L);
-  a = wXX.sum()/(n*L);
-
-  tmp = model_param.beta[idx];
+  double old_beta = model_param.beta[idx];
   model_param.beta[idx] = regfunc->threshold(g) / a;
+  double delta = model_param.beta[idx] - old_beta;
 
-  tmp = model_param.beta[idx] - tmp;
-  // Xb += delta*X[idx*n]
-  Xb = Xb + tmp * X.col(idx);
+  if (fabs(delta) > 1e-8) {
+    // Incremental update: r_new = r_old - delta * xcol
+    // sum_r_new = sum_r_old - delta * sum(xcol)
+    // sum_r2_new = sum_r2_old - 2*delta*(r_old·xcol) + delta^2*(xcol·xcol)
+    //            = sum_r2_old - 2*delta*tmp1 + delta^2*tmp0
+    sum_r -= delta * xcol.sum();
+    sum_r2 += -2.0 * delta * tmp1 + delta * delta * tmp0;
+    if (sum_r2 < 0.0) sum_r2 = 0.0;  // guard against negative from rounding
+    L = sqrt(sum_r2 / n);
 
-  sum_r = 0.0;
-  sum_r2 = 0.0;
-  // r -= delta*X
-  r = r - tmp * X.col(idx);
-  sum_r = r.sum();
-
-  sum_r2 = r.matrix().dot(r.matrix());
-  L = sqrt(sum_r2 / n);
-
+    r = r - delta * xcol;
+    Xb = Xb + delta * xcol;
+  }
   return (model_param.beta[idx]);
 }
 
@@ -62,8 +62,10 @@ void SqrtMSEObjective::intercept_update() {
   model_param.intercept += tmp;
 
   r = r - tmp;
+  // sum_r2_new = sum_r2 - 2*tmp*sum_r + n*tmp^2 = sum_r2 - sum_r^2/n
+  sum_r2 -= sum_r * sum_r / n;
+  if (sum_r2 < 0.0) sum_r2 = 0.0;
   sum_r = 0.0;
-  sum_r2 = r.matrix().dot(r.matrix());
   L = sqrt(sum_r2 / n);
 }
 
@@ -73,7 +75,7 @@ void SqrtMSEObjective::update_auxiliary() {
   sum_r2 = 0.0;
   r = Y - Xb - model_param.intercept;
   sum_r = r.sum();
-  sum_r2 = r.matrix().dot(r.matrix());
+  sum_r2 = r.square().sum();
   L = sqrt(sum_r2 / n);
 }
 
@@ -83,7 +85,8 @@ void SqrtMSEObjective::update_gradient(int idx) {
 
 double SqrtMSEObjective::get_local_change(double old, int idx) {
   if (idx >= 0) {
-    double a =  (X.col(idx) * X.col(idx) * (1 - r * r/(L*L*n))).sum()/(n*L);
+    const auto xcol = X.col(idx);
+    double a =  (xcol * xcol * (1 - r * r/(L*L*n))).sum()/(n*L);
     double tmp = old - model_param.beta[idx];
     return (a * tmp * tmp / (2 * L * n));
   } else {

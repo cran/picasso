@@ -1,10 +1,11 @@
-picasso.logit <- function(X, 
-                          Y, 
+picasso.logit <- function(X,
+                          Y,
                           lambda = NULL,
                           nlambda = NULL,
                           lambda.min.ratio = NULL,
                           method="l1",
                           gamma = 3,
+                          dfmax = NULL,
                           standardize = TRUE,
                           intercept = TRUE,
                           prec = 1e-4,
@@ -45,21 +46,27 @@ picasso.logit <- function(X,
   method.flag = method.info$flag
   gamma = method.info$gamma
   
-  out = logit_solver(yy, xx, lambda, nlambda, gamma, 
-              n, d, max.ite, prec, intercept, verbose, 
-              method.flag)
+  dfmax.int <- if (is.null(dfmax)) as.integer(-1) else as.integer(dfmax)
+
+  out = logit_solver(yy, xx, lambda, nlambda, gamma,
+              n, d, max.ite, prec, intercept, verbose,
+              method.flag, dfmax.int)
   
-  df = vapply(out$beta, function(beta.k) sum(beta.k != 0), FUN.VALUE = integer(1))
-  
+  # truncate to actual number of lambdas fit (early stopping)
+  num.fit = out$num.fit
+  if (num.fit < nlambda) {
+    lambda = lambda[1:num.fit]
+    nlambda = num.fit
+  }
+
   est = list()
-  beta.raw = do.call(cbind, out$beta)
+  beta.raw = matrix(out$beta[1:(d * nlambda)], nrow = d, ncol = nlambda, byrow = FALSE)
+  df = as.integer(colSums(beta.raw != 0))
   scaled = .picasso_rescale_solution(beta.raw, out$intcpt, standardize, xinvc.vec, xm)
 
   runt = Sys.time()-begt
   est$runt = out$runt
   est$beta = Matrix(scaled$beta)
-  res = X %*% scaled$beta + matrix(rep(scaled$intercept, n), nrow = n, byrow = TRUE)
-  est$p = exp(res)/(1+exp(res))
   est$intercept = scaled$intercept
   est$lambda = lambda
   est$nlambda = nlambda

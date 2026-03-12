@@ -1,12 +1,13 @@
-picasso.poisson <- function(X, 
-                          Y, 
+picasso.poisson <- function(X,
+                          Y,
                           lambda = NULL,
                           nlambda = NULL,
                           lambda.min.ratio = NULL,
                           method = "l1",
                           gamma = 3,
+                          dfmax = NULL,
                           standardize = TRUE,
-                          intercept = FALSE,
+                          intercept = TRUE,
                           prec = 1e-4,
                           max.ite = 1e4,
                           verbose = FALSE)
@@ -41,14 +42,22 @@ picasso.poisson <- function(X,
   method.flag = method.info$flag
   gamma = method.info$gamma
   
-  out = poisson_solver(yy, xx, lambda, nlambda, gamma, 
-              n, d, max.ite, prec, intercept = intercept, verbose, 
-              method.flag)
+  dfmax.int <- if (is.null(dfmax)) as.integer(-1) else as.integer(dfmax)
+
+  out = poisson_solver(yy, xx, lambda, nlambda, gamma,
+              n, d, max.ite, prec, intercept = intercept, verbose,
+              method.flag, dfmax.int)
   
-  df = vapply(out$beta, function(beta.k) sum(beta.k != 0), FUN.VALUE = integer(1))
-  
+  # truncate to actual number of lambdas fit (early stopping)
+  num.fit = out$num.fit
+  if (num.fit < nlambda) {
+    lambda = lambda[1:num.fit]
+    nlambda = num.fit
+  }
+
   est = list()
-  beta.raw = do.call(cbind, out$beta)
+  beta.raw = matrix(out$beta[1:(d * nlambda)], nrow = d, ncol = nlambda, byrow = FALSE)
+  df = as.integer(colSums(beta.raw != 0))
   scaled = .picasso_rescale_solution(beta.raw, out$intcpt, standardize, xinvc.vec, xm)
   runt = Sys.time()-begt
   est$runt = out$runt
@@ -58,7 +67,8 @@ picasso.poisson <- function(X,
   est$nlambda = nlambda
   est$df = df
   est$method = method
- 
+  est$alg = "actnewton"
+
   est$ite =out$ite
   est$verbose = verbose
   est$runtime = runt

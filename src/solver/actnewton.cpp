@@ -7,6 +7,7 @@ namespace solver {
 ActNewtonSolver::ActNewtonSolver(ObjFunction *obj, PicassoSolverParams param)
     : m_param(param), m_obj(obj) {
   itercnt_path.clear();
+  runtime_path.clear();
   solution_path.clear();
 }
 
@@ -16,6 +17,9 @@ void ActNewtonSolver::solve() {
 
   const std::vector<double> &lambdas = m_param.get_lambda_path();
   itercnt_path.resize(lambdas.size(), 0);
+  runtime_path.resize(lambdas.size(), 0.0);
+  solution_path.clear();
+  solution_path.reserve(lambdas.size());
 
   double dev_thr = m_obj->get_deviance() * m_param.prec;
 
@@ -28,6 +32,7 @@ void ActNewtonSolver::solve() {
   std::vector<double> old_coef(d);
   std::vector<double> grad(d);
   std::vector<double> grad_master(d);
+  std::vector<double> dev_path;
 
   // std::vector<double> Xb_master(n);
   Eigen::ArrayXd Xb_master(n);
@@ -39,20 +44,18 @@ void ActNewtonSolver::solve() {
   ModelParam model_master = m_obj->get_model_param();
   Xb_master = m_obj->get_model_Xb();
 
-  for (int i = 0; i < d; i++) grad_master[i] = grad[i];
+  std::copy(grad.begin(), grad.end(), grad_master.begin());
 
   std::vector<double> stage_lambdas(d, 0);
   RegFunction *regfunc = new RegL1();
   for (int i = 0; i < lambdas.size(); i++) {
-    // Rprintf("lambda[%d]:%f\n", i, lambdas[i]);
     // start with the previous solution on the master path
     m_obj->set_model_param(model_master);
     m_obj->set_model_Xb(Xb_master);
 
-    for (int j = 0; j < d; j++) {
-      grad[j] = grad_master[j];
-      actset_indcat[j] = actset_indcat_master[j];
-    }
+    std::copy(grad_master.begin(), grad_master.end(), grad.begin());
+    std::copy(actset_indcat_master.begin(), actset_indcat_master.end(),
+              actset_indcat.begin());
 
     // init the active set
     double threshold;
@@ -123,7 +126,6 @@ void ActNewtonSolver::solve() {
 
           if (terminate_loop_level_2) break;
         }
-        // Rprintf("---------loopcnt cnt level 2:%d\n", loopcnt_level_2);
 
         itercnt_path[i] += loopcnt_level_2;
 
@@ -158,22 +160,18 @@ void ActNewtonSolver::solve() {
         if (!new_active_idx) break;
       }
 
-      // Rprintf("---loop level 1 cnt:%d\n", loopcnt_level_1);
-
       if (loopcnt_level_0 == 1) {
         const ModelParam &model_master_ref = m_obj->get_model_param_ref();
-        const Eigen::VectorXd &Xb_master_ref = m_obj->get_model_Xb_ref();
+        const Eigen::ArrayXd &Xb_master_ref = m_obj->get_model_Xb_ref();
 
         model_master.intercept = model_master_ref.intercept;
+        model_master.beta = model_master_ref.beta;
 
-        for (int j = 0; j < d; j++) {
-          model_master.beta[j] = model_master_ref.beta[j];
+        std::copy(grad.begin(), grad.end(), grad_master.begin());
+        std::copy(actset_indcat.begin(), actset_indcat.end(),
+                  actset_indcat_master.begin());
 
-          grad_master[j] = grad[j];
-          actset_indcat_master[j] = actset_indcat[j];
-        }
-
-        for (int j = 0; j < n; j++) Xb_master[j] = Xb_master_ref[j];
+        Xb_master = Xb_master_ref;
       }
 
       if (m_param.reg_type == L1) break;
@@ -202,11 +200,45 @@ void ActNewtonSolver::solve() {
       }
     }
 
-    solution_path.push_back(m_obj->get_model_param());
-  }
+    solution_path.push_back(m_obj->get_model_param_ref());
+    runtime_path[i] = 0.0;
 
+    // track deviance for early stopping
+    double cur_obj = fabs(m_obj->eval());
+    dev_path.push_back(cur_obj);
+
+    // early stopping checks (only after min_lambda_count lambdas)
+    int num_fit = static_cast<int>(solution_path.size());
+    if (num_fit >= m_param.min_lambda_count) {
+      int nnz = 0;
+      for (int j = 0; j < d; j++)
+        if (fabs(m_obj->get_model_coef(j)) > 1e-8) nnz++;
+
+      // 1. dfmax: too many nonzero coefficients
+      if (m_param.dfmax >= 0 && nnz > m_param.dfmax) break;
+
+      // deviance checks only when model has started fitting (nnz > 0)
+      if (nnz > 0) {
+        double null_dev = m_obj->get_deviance();
+        if (null_dev > 0) {
+          // 2. deviance ratio saturation
+          double dev_ratio = 1.0 - cur_obj / null_dev;
+          if (dev_ratio > m_param.dev_ratio_max) break;
+
+          // 3. small relative deviance change over last min_lambda_count steps
+          int prev_idx = num_fit - 1 - m_param.min_lambda_count;
+          if (prev_idx >= 0) {
+            double prev_obj = dev_path[prev_idx];
+            double change = fabs(prev_obj - cur_obj);
+            if (cur_obj > 0 && change / cur_obj < m_param.dev_change_min)
+              break;
+          }
+        }
+      }
+    }
+  }
   delete regfunc;
-}  // namespace solver
+}
 
 }  // namespace solver
 }  // namespace picasso

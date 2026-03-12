@@ -26,25 +26,16 @@
 .picasso_standardize <- function(X) {
   n <- nrow(X)
   d <- ncol(X)
-  xx <- rep(0.0, n * d)
-  xm <- rep(0.0, d)
-  xinvc.vec <- rep(0.0, d)
 
-  str <- .C(
-    "standardize_design",
-    as.double(X),
-    as.double(xx),
-    as.double(xm),
-    as.double(xinvc.vec),
-    as.integer(n),
-    as.integer(d),
+  out <- .Call("picasso_standardize_call",
+    X, as.integer(n), as.integer(d),
     PACKAGE = "picasso"
   )
 
   list(
-    xx = matrix(unlist(str[2]), nrow = n, ncol = d, byrow = FALSE),
-    xm = matrix(unlist(str[3]), nrow = 1),
-    xinvc.vec = unlist(str[4])
+    xx = matrix(out$xx, nrow = n, ncol = d, byrow = FALSE),
+    xm = matrix(out$xm, nrow = 1),
+    xinvc.vec = out$xinvc
   )
 }
 

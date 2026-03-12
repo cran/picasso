@@ -13,36 +13,25 @@ GLMObjective::GLMObjective(const double *xmat, const double *y, int n, int d,
   r.resize(n);
 
   wXX.resize(d);
-
-  if (include_intercept) {
-    double avr_y = Y.sum() / n;
-
-    model_param.intercept = log(avr_y / (1 - avr_y));
-  }
+  // Intercept initialization is done in each subclass with the correct link function.
 }
 
 double GLMObjective::coordinate_descent(RegFunction *regfunc, int idx) {
   g = 0.0;
   a = 0.0;
-
-  // g = (<wXX, model_param.beta> + <r, X>)/n
-  // a = sum(wXX)/n
-  Eigen::ArrayXd wXX = w * X.col(idx) * X.col(idx);
-  a = wXX.sum() / n;
-
-  g = (model_param.beta[idx] * wXX + r * X.col(idx)).sum()/n;
+  const auto xcol = X.col(idx);
+  const double weighted_sq_sum = (w * xcol * xcol).sum();
+  a = weighted_sq_sum / n;
+  g = (model_param.beta[idx] * weighted_sq_sum + (r * xcol).sum()) / n;
 
   double tmp;
   tmp = model_param.beta[idx];
   model_param.beta[idx] = regfunc->threshold(g) / a;
-
   tmp = model_param.beta[idx] - tmp;
-  if (fabs(tmp) > 1e-8) {
-    // Xb += delta*X[idx*n]
-    Xb = Xb + tmp * X.col(idx);
 
-    // r -= delta*w*X
-    r = r - tmp * w * X.col(idx);
+  if (fabs(tmp) > 1e-8) {
+    Xb = Xb + tmp * xcol;
+    r = r - tmp * w * xcol;
   }
   return (model_param.beta[idx]);
 }
@@ -55,14 +44,15 @@ void GLMObjective::intercept_update() {
 }
 
 void GLMObjective::update_gradient(int idx) {
-  Eigen::ArrayXd tmp = (Y - p) * X.col(idx) / n;
-  gr[idx] = tmp.sum();
+  const auto xcol = X.col(idx);
+  gr[idx] = ((Y - p) * xcol).sum() / n;
 }
 
 double GLMObjective::get_local_change(double old, int idx) {
   if (idx >= 0) {
+    const auto xcol = X.col(idx);
     double tmp = old - model_param.beta[idx];
-    return ((w*X.col(idx)*X.col(idx)).sum() * tmp * tmp / (2 * n));
+    return ((w * xcol * xcol).sum() * tmp * tmp / (2 * n));
   } else {
     double tmp = old - model_param.intercept;
     return (sum_w * tmp * tmp / (2 * n));
@@ -72,11 +62,12 @@ double GLMObjective::get_local_change(double old, int idx) {
 LogisticObjective::LogisticObjective(const double *xmat, const double *y, int n,
                                      int d, bool include_intercept, bool usePython)
     : GLMObjective(xmat, y, n, d, include_intercept, usePython) {
+  if (include_intercept) {
+    double avr_y = Y.sum() / n;
+    model_param.intercept = log(avr_y / (1 - avr_y));
+  }
   update_auxiliary();
   for (int i = 0; i < d; i++) update_gradient(i);
-
-  model_param.intercept = 0.0;
-  update_auxiliary();
 
   deviance = fabs(eval());
 };
@@ -104,11 +95,12 @@ double LogisticObjective::eval() {
 PoissonObjective::PoissonObjective(const double *xmat, const double *y, int n,
                                    int d, bool include_intercept, bool usePython)
     : GLMObjective(xmat, y, n, d, include_intercept, usePython) {
+  if (include_intercept) {
+    double avr_y = Y.sum() / n;
+    model_param.intercept = log(avr_y);
+  }
   update_auxiliary();
   for (int i = 0; i < d; i++) update_gradient(i);
-
-  model_param.intercept = 0.0;
-  update_auxiliary();
 
   deviance = fabs(eval());
 };

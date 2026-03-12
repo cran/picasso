@@ -1,5 +1,5 @@
-picasso.gaussian <- function(X, 
-                          Y, 
+picasso.gaussian <- function(X,
+                          Y,
                           lambda = NULL,
                           nlambda = NULL,
                           lambda.min.ratio = NULL,
@@ -7,6 +7,7 @@ picasso.gaussian <- function(X,
                           type.gaussian = NULL,
                           gamma = 3,
                           df = NULL,
+                          dfmax = NULL,
                           standardize = TRUE,
                           intercept = TRUE,
                           prec = 1e-4,
@@ -67,8 +68,10 @@ picasso.gaussian <- function(X,
   method.flag = method.info$flag
   gamma = method.info$gamma
 
+  dfmax.int <- if (is.null(dfmax)) as.integer(-1) else as.integer(dfmax)
+
   out = gaussian_solver(yy, xx, lambda, nlambda, gamma, n, d, max.ite, prec, verbose,
-                       intercept, method.flag, type.gaussian)
+                       intercept, method.flag, type.gaussian, dfmax.int)
 
   if (out$err == 1) {
     stop("Parameters are too dense. Please choose larger `lambda`.")
@@ -77,18 +80,25 @@ picasso.gaussian <- function(X,
     warning("`df` may be too small. You may choose larger `df`.", call. = FALSE)
   }
 
-  beta.raw = matrix(out$beta, nrow = d, ncol = nlambda, byrow = FALSE)
-  scaled = .picasso_rescale_solution(beta.raw, out$intcpt, standardize, xinvc.vec, xm)
+  # truncate to actual number of lambdas fit (early stopping)
+  num.fit = out$num.fit
+  if (num.fit < nlambda) {
+    lambda = lambda[1:num.fit]
+    nlambda = num.fit
+  }
+
+  beta.raw = matrix(out$beta[1:(d * nlambda)], nrow = d, ncol = nlambda, byrow = FALSE)
+  scaled = .picasso_rescale_solution(beta.raw, out$intcpt[1:nlambda], standardize, xinvc.vec, xm)
 
   est$beta = Matrix(scaled$beta)
-  est$intercept = scaled$intercept
+  est$intercept = if (standardize) scaled$intercept + ym else scaled$intercept
   est$lambda = lambda * sdy
   est$df = colSums(beta.raw != 0)
-  
-  est$ite = out$ite
-  
+
+  est$ite = out$ite[1:nlambda]
+
   runt = Sys.time()-begt
-  
+
   est$nlambda = nlambda
   est$gamma = gamma
   est$method = method
